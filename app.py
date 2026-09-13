@@ -1,71 +1,255 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
-from datetime import timezone
+import plotly.graph_objects as go
+from datetime import datetime, timezone
 
 # ============================================================
-# SHOAIB DATA READER — LOCKED H20 LIVE READER
+# SHOAIB DATA READER
+# EUR/USD — 5 MINUTE LOCKED H20 READER
 # ============================================================
 
 st.set_page_config(
     page_title="Shoaib Data Reader",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-APP_NAME = "SHOAIB DATA READER"
-
-PAIR_OPTIONS = [
-    "EUR/USD",
-    "GBP/USD",
-    "USD/JPY",
-    "AUD/USD",
-    "USD/CAD",
-    "USD/CHF",
-    "NZD/USD"
-]
-
-TIMEFRAME_OPTIONS = [
-    "5-Minute",
-    "15-Minute",
-    "30-Minute",
-    "1-Hour"
-]
-
-API_URL = "https://biquote.io/api/EURUSD/ohlc?interval=5m&limit=100"
-
-LOOKBACK = 20
-ATR_PERIOD = 14
-
 # ============================================================
-# LOCKED H20 STRATEGY — DO NOT MODIFY
+# LOCKED CONFIGURATION
 # ============================================================
 
-LOCKED_STRATEGY = "H20_BEARISH_NY"
+SYMBOL = "EURUSD"
+TIMEFRAME = "5m"
 
-NY_START_UTC = 13
-NY_END_UTC = 17
+H20_START_UTC = 13
+H20_END_UTC = 17
+
+MIN_BARS = 60
+STALE_LIMIT_MINUTES = 15
 
 AUTO_TRADING = False
 STRATEGY_LOCKED = True
 
+API_URL = f"https://biquote.io/api/{SYMBOL}/ohlc"
 
 # ============================================================
-# LIVE DATA
+# SESSION STATE
 # ============================================================
 
-def get_live_data():
+if "running" not in st.session_state:
+    st.session_state.running = False
 
-    r = requests.get(API_URL, timeout=15)
-    r.raise_for_status()
+if "last_signal_key" not in st.session_state:
+    st.session_state.last_signal_key = None
 
-    data = r.json()
-    bars = data.get("bars", [])
+if "signal_history" not in st.session_state:
+    st.session_state.signal_history = set()
+
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = None
+
+# ============================================================
+# CSS
+# ============================================================
+
+st.markdown("""
+<style>
+
+.main {
+    padding-top: 1rem;
+}
+
+.block-container {
+    max-width: 1500px;
+    padding-top: 1rem;
+}
+
+.reader-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.15rem;
+}
+
+.reader-subtitle {
+    color: #8b949e;
+    margin-bottom: 1rem;
+}
+
+.metric-card {
+    border: 1px solid rgba(128,128,128,0.25);
+    border-radius: 14px;
+    padding: 15px;
+    background: rgba(128,128,128,0.05);
+    min-height: 105px;
+}
+
+.metric-label {
+    font-size: 0.78rem;
+    color: #8b949e;
+    margin-bottom: 5px;
+}
+
+.metric-value {
+    font-size: 1.35rem;
+    font-weight: 750;
+}
+
+.signal-box {
+    border-radius: 16px;
+    padding: 22px;
+    border: 1px solid rgba(128,128,128,0.25);
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.signal-title {
+    font-size: 0.85rem;
+    color: #8b949e;
+}
+
+.signal-value {
+    font-size: 2rem;
+    font-weight: 850;
+}
+
+.status-ok {
+    color: #2ecc71;
+    font-weight: 700;
+}
+
+.status-off {
+    color: #e67e22;
+    font-weight: 700;
+}
+
+.small-text {
+    font-size: 0.78rem;
+    color: #8b949e;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# HEADER
+# ============================================================
+
+st.markdown(
+    '<div class="reader-title">📊 SHOAIB DATA READER</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="reader-subtitle">'
+    'EUR/USD • 5 Minute Live Signal Reader • Locked H20 Strategy'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+# ============================================================
+# SIDEBAR
+# ============================================================
+
+with st.sidebar:
+
+    st.header("⚙️ Reader Controls")
+
+    analysis_interval = st.select_slider(
+        "Analysis Interval",
+        options=[5, 10, 15, 30, 60],
+        value=10,
+        format_func=lambda x: f"{x} seconds"
+    )
+
+    st.divider()
+
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        if st.button(
+            "▶ Start",
+            use_container_width=True
+        ):
+            st.session_state.running = True
+            st.rerun()
+
+    with col_b:
+        if st.button(
+            "⏹ Stop",
+            use_container_width=True
+        ):
+            st.session_state.running = False
+            st.rerun()
+
+    if st.button(
+        "🔍 Analyze Now",
+        use_container_width=True
+    ):
+        st.session_state.last_refresh = None
+        st.rerun()
+
+    st.divider()
+
+    st.markdown("### 🔒 Strategy Safety")
+
+    st.write(
+        "Strategy: "
+        + ("LOCKED" if STRATEGY_LOCKED else "UNLOCKED")
+    )
+
+    st.write(
+        "Auto Trading: "
+        + ("DISABLED" if not AUTO_TRADING else "ENABLED")
+    )
+
+    st.write("Feed: Biquote EUR/USD OHLC")
+
+    st.divider()
+
+    st.markdown("### 📌 Locked H20")
+
+    st.write("Direction: BEARISH")
+    st.write("Session: 13:00–17:00 UTC")
+    st.write("Entry: Completed candle close")
+    st.write("Extra filter: None")
+
+# ============================================================
+# DATA FETCH
+# ============================================================
+
+@st.cache_data(ttl=4, show_spinner=False)
+def fetch_live_data():
+
+    response = requests.get(
+        API_URL,
+        params={
+            "interval": TIMEFRAME,
+            "limit": 101
+        },
+        headers={
+            "User-Agent": "Mozilla/5.0"
+        },
+        timeout=10
+    )
+
+    response.raise_for_status()
+
+    payload = response.json()
+
+    if "bars" not in payload:
+        raise ValueError(
+            "API response does not contain bars"
+        )
+
+    bars = payload["bars"]
 
     if not bars:
-        raise ValueError("No live candles received.")
+        raise ValueError(
+            "No live candles received"
+        )
 
     df = pd.DataFrame(bars)
 
@@ -77,30 +261,32 @@ def get_live_data():
         "close"
     ]
 
-    for col in required:
-        if col not in df.columns:
-            raise ValueError(f"Missing column: {col}")
+    missing = [
+        c for c in required
+        if c not in df.columns
+    ]
+
+    if missing:
+        raise ValueError(
+            f"Missing columns: {missing}"
+        )
 
     df["Datetime"] = pd.to_datetime(
         df["openTime"],
-        unit="ms",
-        utc=True
+        utc=True,
+        errors="coerce"
     )
 
-    for col in ["open", "high", "low", "close"]:
+    for col in [
+        "open",
+        "high",
+        "low",
+        "close"
+    ]:
         df[col] = pd.to_numeric(
             df[col],
             errors="coerce"
         )
-
-    df = (
-        df
-        .sort_values("Datetime")
-        .drop_duplicates(
-            subset=["Datetime"]
-        )
-        .reset_index(drop=True)
-    )
 
     df = df.dropna(
         subset=[
@@ -110,10 +296,36 @@ def get_live_data():
             "low",
             "close"
         ]
+    ).copy()
+
+    df = (
+        df.drop_duplicates(
+            subset=["Datetime"],
+            keep="last"
+        )
+        .sort_values("Datetime")
+        .reset_index(drop=True)
     )
 
-    return df
+    if len(df) < MIN_BARS:
+        raise ValueError(
+            f"Only {len(df)} valid candles received"
+        )
 
+    invalid = (
+        (df["high"] < df["low"]) |
+        (df["high"] < df["open"]) |
+        (df["high"] < df["close"]) |
+        (df["low"] > df["open"]) |
+        (df["low"] > df["close"])
+    )
+
+    if invalid.any():
+        raise ValueError(
+            "OHLC integrity check failed"
+        )
+
+    return df
 
 # ============================================================
 # INDICATORS
@@ -121,27 +333,10 @@ def get_live_data():
 
 def calculate_indicators(df):
 
-    df = df.copy()
+    out = df.copy()
 
-    previous_close = df["close"].shift(1)
-
-    tr1 = df["high"] - df["low"]
-    tr2 = (df["high"] - previous_close).abs()
-    tr3 = (df["low"] - previous_close).abs()
-
-    df["TR"] = pd.concat(
-        [tr1, tr2, tr3],
-        axis=1
-    ).max(axis=1)
-
-    df["ATR14"] = (
-        df["TR"]
-        .rolling(ATR_PERIOD)
-        .mean()
-    )
-
-    df["EMA20"] = (
-        df["close"]
+    out["EMA20"] = (
+        out["close"]
         .ewm(
             span=20,
             adjust=False
@@ -149,8 +344,8 @@ def calculate_indicators(df):
         .mean()
     )
 
-    df["EMA50"] = (
-        df["close"]
+    out["EMA50"] = (
+        out["close"]
         .ewm(
             span=50,
             adjust=False
@@ -158,479 +353,696 @@ def calculate_indicators(df):
         .mean()
     )
 
-    df["EMA_DIRECTION"] = np.where(
-        df["EMA20"] > df["EMA50"],
+    previous_close = out["close"].shift(1)
+
+    tr1 = out["high"] - out["low"]
+
+    tr2 = (
+        out["high"] - previous_close
+    ).abs()
+
+    tr3 = (
+        out["low"] - previous_close
+    ).abs()
+
+    out["TR"] = pd.concat(
+        [tr1, tr2, tr3],
+        axis=1
+    ).max(axis=1)
+
+    out["ATR14"] = (
+        out["TR"]
+        .rolling(14)
+        .mean()
+    )
+
+    out["Support20"] = (
+        out["low"]
+        .shift(1)
+        .rolling(20)
+        .min()
+    )
+
+    out["Resistance20"] = (
+        out["high"]
+        .shift(1)
+        .rolling(20)
+        .max()
+    )
+
+    out["EMA_DIRECTION"] = np.where(
+        out["EMA20"] > out["EMA50"],
         "BULL",
         "BEAR"
     )
 
-    return df
-
+    return out
 
 # ============================================================
-# COMPLETED 5-MINUTE CANDLE
+# COMPLETED CANDLE
 # ============================================================
 
-def get_completed_candle(df):
+def get_completed_candles(df):
 
-    now = pd.Timestamp.now(tz="UTC")
+    now = datetime.now(timezone.utc)
 
-    completed_limit = now.floor("5min")
-
-    completed = df[
+    completion_time = (
         df["Datetime"]
         + pd.Timedelta(minutes=5)
-        <= completed_limit
+    )
+
+    mask = (
+        completion_time
+        <= pd.Timestamp(now)
+    )
+
+    completed = df.loc[
+        mask
     ].copy()
 
     if completed.empty:
-        return None
+        raise ValueError(
+            "No completed 5-minute candle available"
+        )
 
-    return completed.iloc[-1]
-
+    return completed, now
 
 # ============================================================
-# LOCKED H20 SIGNAL ENGINE
+# H20 ENGINE
 # ============================================================
 
-def get_signal(row):
+def evaluate_h20(row):
 
-    if row is None:
+    utc_hour = int(
+        row["Datetime"].hour
+    )
 
-        return {
-            "signal": "NO SIGNAL",
-            "confidence": "NONE",
-            "reason": "NO COMPLETED CANDLE"
-        }
+    ny_core = (
+        H20_START_UTC
+        <= utc_hour
+        < H20_END_UTC
+    )
 
-    candle_time = row["Datetime"]
+    bearish = (
+        row["EMA_DIRECTION"] == "BEAR"
+    )
 
-    hour = candle_time.hour
+    active = (
+        bearish and ny_core
+    )
 
-    trend = row["EMA_DIRECTION"]
+    if active:
+
+        signal = "SELL"
+
+        reason = (
+            "H20 LOCKED RULE: "
+            "BEAR EMA direction + NY Core session"
+        )
+
+    else:
+
+        signal = "NO SIGNAL"
+
+        if not ny_core:
+            reason = (
+                "Outside H20 NY Core session"
+            )
+
+        elif not bearish:
+            reason = (
+                "EMA direction is not BEAR"
+            )
+
+        else:
+            reason = (
+                "H20 conditions not satisfied"
+            )
+
+    return (
+        signal,
+        reason,
+        ny_core,
+        utc_hour
+    )
+
+# ============================================================
+# LOAD LIVE DATA
+# ============================================================
+
+try:
+
+    raw_df = fetch_live_data()
+
+    df = calculate_indicators(
+        raw_df
+    )
+
+    completed_df, now_utc = (
+        get_completed_candles(df)
+    )
+
+    latest = completed_df.iloc[-1]
+
+    candle_time = latest["Datetime"]
+
+    candle_close_time = (
+        candle_time
+        + pd.Timedelta(minutes=5)
+    )
+
+    candle_age = (
+        pd.Timestamp(now_utc)
+        - candle_close_time
+    ).total_seconds() / 60
+
+    signal, reason, ny_core, utc_hour = (
+        evaluate_h20(latest)
+    )
 
     # Weekend safety
-    if candle_time.weekday() >= 5:
+    weekend = (
+        now_utc.weekday() >= 5
+    )
 
-        return {
-            "signal": "NO SIGNAL",
-            "confidence": "NONE",
-            "reason": "MARKET CLOSED — WEEKEND"
-        }
+    if weekend:
 
-    # ========================================================
-    # LOCKED H20 RULE
-    # ========================================================
+        market_status = "CLOSED — WEEKEND"
+        freshness_ok = True
 
-    if NY_START_UTC <= hour < NY_END_UTC:
+    else:
 
-        if trend == "BEAR":
+        market_status = "OPEN"
 
-            return {
-                "signal": "SELL",
-                "confidence": "HIGH",
-                "reason": (
-                    "H20 BEARISH NY CORE "
-                    "CONDITION SATISFIED"
-                )
-            }
+        freshness_ok = (
+            candle_age <= STALE_LIMIT_MINUTES
+        )
 
-        return {
-            "signal": "NO SIGNAL",
-            "confidence": "NONE",
-            "reason": (
-                "NY CORE ACTIVE BUT "
-                "EMA TREND IS NOT BEARISH"
-            )
-        }
+    # Duplicate protection
+    signal_key = (
+        candle_time.isoformat(),
+        signal
+    )
 
-    return {
-        "signal": "NO SIGNAL",
-        "confidence": "NONE",
-        "reason": "OUTSIDE NY CORE SESSION"
-    }
+    duplicate = (
+        signal_key
+        in st.session_state.signal_history
+    )
 
+    st.session_state.signal_history.add(
+        signal_key
+    )
+
+    st.session_state.last_signal_key = (
+        signal_key
+    )
+
+    st.session_state.last_refresh = now_utc
+
+    data_error = None
+
+except Exception as e:
+
+    raw_df = pd.DataFrame()
+    df = pd.DataFrame()
+    completed_df = pd.DataFrame()
+
+    latest = None
+    signal = "NO SIGNAL"
+    reason = "Live feed unavailable"
+    ny_core = False
+    utc_hour = None
+
+    candle_age = None
+    market_status = "FEED ERROR"
+    freshness_ok = False
+    duplicate = False
+
+    data_error = str(e)
 
 # ============================================================
-# HEADER
+# TOP METRICS
 # ============================================================
 
-st.title("📊 SHOAIB DATA READER")
+if latest is not None:
 
-st.caption(
-    "Locked H20 EUR/USD 5-Minute Signal Reader"
+    price = latest["close"]
+    ema20 = latest["EMA20"]
+    ema50 = latest["EMA50"]
+    atr14 = latest["ATR14"]
+    support = latest["Support20"]
+    resistance = latest["Resistance20"]
+    trend = latest["EMA_DIRECTION"]
+
+else:
+
+    price = np.nan
+    ema20 = np.nan
+    ema50 = np.nan
+    atr14 = np.nan
+    support = np.nan
+    resistance = np.nan
+    trend = "UNKNOWN"
+
+m1, m2, m3, m4, m5 = st.columns(5)
+
+with m1:
+    st.metric(
+        "Live Price",
+        f"{price:.5f}"
+        if pd.notna(price)
+        else "—"
+    )
+
+with m2:
+    st.metric(
+        "Trend",
+        trend
+    )
+
+with m3:
+    st.metric(
+        "EMA20",
+        f"{ema20:.5f}"
+        if pd.notna(ema20)
+        else "—"
+    )
+
+with m4:
+    st.metric(
+        "EMA50",
+        f"{ema50:.5f}"
+        if pd.notna(ema50)
+        else "—"
+    )
+
+with m5:
+    st.metric(
+        "ATR14",
+        f"{atr14:.5f}"
+        if pd.notna(atr14)
+        else "—"
+    )
+
+# ============================================================
+# SIGNAL PANEL
+# ============================================================
+
+st.markdown("### 🎯 Current H20 Signal")
+
+signal_col, reason_col, session_col = st.columns(
+    [1, 2, 1]
 )
 
-st.divider()
+with signal_col:
 
-
-# ============================================================
-# CONTROLS
-# ============================================================
-
-c1, c2, c3 = st.columns(3)
-
-with c1:
-
-    selected_pair = st.selectbox(
-        "Currency Pair",
-        PAIR_OPTIONS
+    signal_class = (
+        "status-ok"
+        if signal == "SELL"
+        else "status-off"
     )
 
-with c2:
-
-    selected_timeframe = st.selectbox(
-        "Timeframe",
-        TIMEFRAME_OPTIONS
+    st.markdown(
+        f"""
+        <div class="signal-box">
+            <div class="signal-title">SIGNAL</div>
+            <div class="signal-value {signal_class}">
+                {signal}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-with c3:
+with reason_col:
 
-    analysis_interval = st.slider(
-        "Analysis Interval (seconds)",
-        min_value=5,
-        max_value=300,
-        value=30,
-        step=5
+    st.markdown(
+        f"""
+        <div class="signal-box">
+            <div class="signal-title">REASON</div>
+            <div style="font-size:1.05rem;font-weight:650;">
+                {reason}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
+with session_col:
+
+    session_text = (
+        "ACTIVE"
+        if ny_core
+        else "INACTIVE"
+    )
+
+    st.markdown(
+        f"""
+        <div class="signal-box">
+            <div class="signal-title">NY CORE</div>
+            <div class="signal-value">
+                {session_text}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # ============================================================
-# SESSION STATE
+# CHART
 # ============================================================
 
-if "analysis_running" not in st.session_state:
+st.markdown("### 📈 Live Candlestick Chart")
 
-    st.session_state.analysis_running = False
+if not df.empty:
 
+    chart_df = df.tail(80).copy()
 
-b1, b2, b3 = st.columns(3)
+    fig = go.Figure()
 
-with b1:
-
-    if st.button(
-        "▶️ START ANALYSIS",
-        use_container_width=True
-    ):
-
-        st.session_state.analysis_running = True
-        st.rerun()
-
-
-with b2:
-
-    if st.button(
-        "⏹️ STOP ANALYSIS",
-        use_container_width=True
-    ):
-
-        st.session_state.analysis_running = False
-        st.rerun()
-
-
-with b3:
-
-    analyze_now = st.button(
-        "🔄 ANALYZE NOW",
-        use_container_width=True
+    # Candlesticks
+    fig.add_trace(
+        go.Candlestick(
+            x=chart_df["Datetime"],
+            open=chart_df["open"],
+            high=chart_df["high"],
+            low=chart_df["low"],
+            close=chart_df["close"],
+            name="EUR/USD"
+        )
     )
 
+    # EMA20
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df["Datetime"],
+            y=chart_df["EMA20"],
+            mode="lines",
+            name="EMA20",
+            line=dict(
+                width=1.5
+            )
+        )
+    )
 
-if st.session_state.analysis_running:
+    # EMA50
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df["Datetime"],
+            y=chart_df["EMA50"],
+            mode="lines",
+            name="EMA50",
+            line=dict(
+                width=1.5
+            )
+        )
+    )
 
-    st.success(
-        f"🟢 AUTO ANALYSIS RUNNING — "
-        f"Every {analysis_interval} seconds"
+    # Support
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df["Datetime"],
+            y=chart_df["Support20"],
+            mode="lines",
+            name="Support 20",
+            line=dict(
+                dash="dot",
+                width=1
+            )
+        )
+    )
+
+    # Resistance
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df["Datetime"],
+            y=chart_df["Resistance20"],
+            mode="lines",
+            name="Resistance 20",
+            line=dict(
+                dash="dot",
+                width=1
+            )
+        )
+    )
+
+    # Current price
+    if pd.notna(price):
+
+        fig.add_hline(
+            y=price,
+            line_dash="dash",
+            annotation_text=f"{price:.5f}",
+            annotation_position="top right"
+        )
+
+    # H20 SELL markers
+    sell_df = chart_df[
+        (
+            chart_df["EMA_DIRECTION"]
+            == "BEAR"
+        )
+        &
+        (
+            chart_df["Datetime"].dt.hour
+            >= H20_START_UTC
+        )
+        &
+        (
+            chart_df["Datetime"].dt.hour
+            < H20_END_UTC
+        )
+    ].copy()
+
+    if not sell_df.empty:
+
+        fig.add_trace(
+            go.Scatter(
+                x=sell_df["Datetime"],
+                y=sell_df["high"] + (
+                    sell_df["ATR14"].fillna(0)
+                    * 0.25
+                ),
+                mode="markers",
+                name="H20 SELL",
+                marker=dict(
+                    symbol="triangle-down",
+                    size=11
+                )
+            )
+        )
+
+    fig.update_layout(
+        height=620,
+        xaxis_title="UTC Time",
+        yaxis_title="Price",
+        xaxis_rangeslider_visible=False,
+        hovermode="x unified",
+        margin=dict(
+            l=10,
+            r=10,
+            t=35,
+            b=10
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.01,
+            xanchor="left",
+            x=0
+        )
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            "displaylogo": False,
+            "responsive": True
+        }
     )
 
 else:
 
-    st.info(
-        "⚪ AUTO ANALYSIS STOPPED"
+    st.warning(
+        "Live chart data is currently unavailable."
     )
 
+# ============================================================
+# MARKET DETAILS
+# ============================================================
+
+st.markdown("### 📋 Market Details")
+
+d1, d2, d3, d4 = st.columns(4)
+
+with d1:
+    st.metric(
+        "Support 20",
+        f"{support:.5f}"
+        if pd.notna(support)
+        else "—"
+    )
+
+with d2:
+    st.metric(
+        "Resistance 20",
+        f"{resistance:.5f}"
+        if pd.notna(resistance)
+        else "—"
+    )
+
+with d3:
+    st.metric(
+        "Completed Candle",
+        candle_time.strftime(
+            "%H:%M UTC"
+        )
+        if latest is not None
+        else "—"
+    )
+
+with d4:
+    st.metric(
+        "Candle Age",
+        f"{candle_age:.1f} min"
+        if candle_age is not None
+        else "—"
+    )
+
+# ============================================================
+# LATEST CANDLE OHLC
+# ============================================================
+
+if latest is not None:
+
+    st.markdown("### 🕯️ Latest Completed Candle")
+
+    o1, o2, o3, o4 = st.columns(4)
+
+    with o1:
+        st.metric(
+            "Open",
+            f"{latest['open']:.5f}"
+        )
+
+    with o2:
+        st.metric(
+            "High",
+            f"{latest['high']:.5f}"
+        )
+
+    with o3:
+        st.metric(
+            "Low",
+            f"{latest['low']:.5f}"
+        )
+
+    with o4:
+        st.metric(
+            "Close",
+            f"{latest['close']:.5f}"
+        )
+
+# ============================================================
+# SYSTEM STATUS
+# ============================================================
+
+st.markdown("### 🛡️ System Status")
+
+s1, s2, s3, s4, s5 = st.columns(5)
+
+with s1:
+    st.markdown(
+        "**LIVE FEED**  \n"
+        "🟢 PASS"
+    )
+
+with s2:
+    st.markdown(
+        "**INDICATORS**  \n"
+        "🟢 PASS"
+    )
+
+with s3:
+    st.markdown(
+        "**H20 RULE**  \n"
+        "🔒 LOCKED"
+    )
+
+with s4:
+    st.markdown(
+        "**AUTO TRADING**  \n"
+        "🚫 DISABLED"
+    )
+
+with s5:
+    freshness_label = (
+        "PASS"
+        if freshness_ok
+        else "REVIEW"
+    )
+
+    st.markdown(
+        f"**FRESHNESS**  \n"
+        f"{'🟢' if freshness_ok else '🟠'} {freshness_label}"
+    )
+
+# ============================================================
+# MARKET STATUS
+# ============================================================
+
+st.markdown("### 🌐 Reader Status")
+
+r1, r2, r3 = st.columns(3)
+
+with r1:
+
+    st.write(
+        f"**Market:** {market_status}"
+    )
+
+with r2:
+
+    st.write(
+        f"**Analysis Interval:** "
+        f"{analysis_interval}s"
+    )
+
+with r3:
+
+    if st.session_state.last_refresh:
+
+        refresh_text = (
+            st.session_state.last_refresh
+            .strftime(
+                "%Y-%m-%d %H:%M:%S UTC"
+            )
+        )
+
+    else:
+
+        refresh_text = "—"
+
+    st.write(
+        f"**Last Analysis:** {refresh_text}"
+    )
+
+# ============================================================
+# ERROR PANEL
+# ============================================================
+
+if data_error:
+
+    st.error(
+        f"Reader error: {data_error}"
+    )
+
+# ============================================================
+# DISCLAIMER / SAFETY
+# ============================================================
 
 st.divider()
 
-
-# ============================================================
-# VALIDATION
-# ============================================================
-
-if (
-    selected_pair != "EUR/USD"
-    or selected_timeframe != "5-Minute"
-):
-
-    st.warning(
-        "⚠️ H20 signal engine صرف "
-        "EUR/USD 5-Minute کے لیے "
-        "validated اور locked ہے۔"
-    )
-
-    st.info(
-        "دوسرے pairs/timeframes کو signal "
-        "دینے کے لیے الگ validation ضروری ہوگی۔"
-    )
-
-
-# ============================================================
-# LIVE READER
-# ============================================================
-
-run_every_value = (
-    f"{analysis_interval}s"
-    if st.session_state.analysis_running
-    else None
-)
-
-
-@st.fragment(run_every=run_every_value)
-def live_reader():
-
-    try:
-
-        df = get_live_data()
-
-        df = calculate_indicators(df)
-
-        completed = get_completed_candle(df)
-
-        if completed is None:
-
-            st.error(
-                "Completed 5-minute candle "
-                "available نہیں ہے۔"
-            )
-
-            return
-
-
-        signal_data = get_signal(completed)
-
-        candle_time = completed["Datetime"]
-
-        price = completed["close"]
-
-        ema20 = completed["EMA20"]
-
-        ema50 = completed["EMA50"]
-
-        atr14 = completed["ATR14"]
-
-        trend = completed["EMA_DIRECTION"]
-
-        ny_active = (
-            NY_START_UTC
-            <= candle_time.hour
-            < NY_END_UTC
-        )
-
-
-        # ====================================================
-        # MAIN METRICS
-        # ====================================================
-
-        m1, m2, m3, m4 = st.columns(4)
-
-        with m1:
-
-            st.metric(
-                "Live Price",
-                f"{price:.5f}"
-            )
-
-        with m2:
-
-            st.metric(
-                "EMA20",
-                f"{ema20:.5f}"
-            )
-
-        with m3:
-
-            st.metric(
-                "EMA50",
-                f"{ema50:.5f}"
-            )
-
-        with m4:
-
-            st.metric(
-                "ATR14",
-                f"{atr14:.6f}"
-            )
-
-
-        st.divider()
-
-
-        # ====================================================
-        # STATUS
-        # ====================================================
-
-        s1, s2, s3, s4 = st.columns(4)
-
-        with s1:
-
-            st.write("### Trend")
-
-            st.write(
-                f"**{trend}**"
-            )
-
-        with s2:
-
-            st.write("### NY Core")
-
-            st.write(
-                "**ACTIVE**"
-                if ny_active
-                else "**INACTIVE**"
-            )
-
-        with s3:
-
-            st.write("### Signal")
-
-            if signal_data["signal"] == "SELL":
-
-                st.error(
-                    "**SELL**"
-                )
-
-            else:
-
-                st.write(
-                    f"**{signal_data['signal']}**"
-                )
-
-        with s4:
-
-            st.write("### Confidence")
-
-            st.write(
-                f"**{signal_data['confidence']}**"
-            )
-
-
-        st.divider()
-
-
-        # ====================================================
-        # REASON
-        # ====================================================
-
-        st.subheader(
-            "🧠 Reader Reason"
-        )
-
-        st.info(
-            signal_data["reason"]
-        )
-
-
-        # ====================================================
-        # COMPLETED CANDLE
-        # ====================================================
-
-        st.subheader(
-            "🕯️ Completed Candle"
-        )
-
-        candle_info = pd.DataFrame({
-
-            "Item": [
-
-                "Candle Time (UTC)",
-                "Open",
-                "High",
-                "Low",
-                "Close",
-                "EMA20",
-                "EMA50",
-                "ATR14"
-
-            ],
-
-            "Value": [
-
-                str(candle_time),
-
-                f"{completed['open']:.5f}",
-
-                f"{completed['high']:.5f}",
-
-                f"{completed['low']:.5f}",
-
-                f"{completed['close']:.5f}",
-
-                f"{completed['EMA20']:.5f}",
-
-                f"{completed['EMA50']:.5f}",
-
-                f"{completed['ATR14']:.6f}"
-
-            ]
-
-        })
-
-
-        st.dataframe(
-            candle_info,
-            use_container_width=True,
-            hide_index=True
-        )
-
-
-        # ====================================================
-        # SYSTEM STATUS
-        # ====================================================
-
-        st.subheader(
-            "⚙️ System Status"
-        )
-
-        st.success(
-            "LIVE DATA FEED : PASS"
-        )
-
-        st.success(
-            "INDICATOR ENGINE : PASS"
-        )
-
-        st.success(
-            "H20 RULE : LOCKED"
-        )
-
-        st.success(
-            "STRATEGY MODIFICATION : DISABLED"
-        )
-
-        st.success(
-            "AUTO TRADING : DISABLED"
-        )
-
-        st.caption(
-            f"Analysis interval selected: "
-            f"{analysis_interval} seconds"
-        )
-
-        st.caption(
-            f"Reader status: "
-            f"{'RUNNING' if st.session_state.analysis_running else 'STOPPED'}"
-        )
-
-
-    except Exception as e:
-
-        st.error(
-            f"Live reader error: {e}"
-        )
-
-
-# ============================================================
-# RUN LIVE READER
-# ============================================================
-
-live_reader()
+st.markdown(
+    """
