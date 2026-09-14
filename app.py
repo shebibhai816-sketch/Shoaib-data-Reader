@@ -1045,4 +1045,19 @@ if data_error:
 st.divider()
 
 st.markdown(
-    """
+    """<div class="small-text">
+Data source: Biquote EUR/USD OHLC feed.
+The feed is used for live reader testing and is not claimed
+to be identical to the historical BID dataset.
+<br><br>
+H20 strategy is locked. No automatic order execution is enabled.
+This interface is a research/reader tool and does not place trades.
+</div>
+""",
+    unsafe_allow_html=True
+)
+
+if st.session_state.running:
+    import time
+    time.sleep(max(5, analysis_interval))
+    st.rerun()
