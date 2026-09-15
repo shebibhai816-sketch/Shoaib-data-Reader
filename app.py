@@ -677,6 +677,12 @@ if analysis_signal == "SELL":
     st.success("✅ H20 validated condition is active.")
 else:
     st.info("⏸️ No confirmed H20 signal at this moment.")
+    # PROFESSIONAL CHART MARKER
+
+if analysis_signal == "SELL":
+    st.info("🔻 H20 SELL marker: current completed candle")
+else:
+    st.caption("No confirmed chart signal at this moment.")
 signal_col, reason_col, session_col = st.columns(
     [1, 2, 1]
 )
