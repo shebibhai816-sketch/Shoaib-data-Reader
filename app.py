@@ -683,6 +683,18 @@ if analysis_signal == "SELL":
     st.info("🔻 H20 SELL marker: current completed candle")
 else:
     st.caption("No confirmed chart signal at this moment.")
+    # PROFESSIONAL H20 CHART MARKER
+
+if analysis_signal == "SELL":
+    fig.add_trace(go.Scatter(
+        x=[latest["Datetime"]],
+        y=[latest["High"]],
+        mode="markers+text",
+        marker=dict(size=14, symbol="triangle-down"),
+        text=["SELL"],
+        textposition="top center",
+        name="H20 SELL"
+    ))
 signal_col, reason_col, session_col = st.columns(
     [1, 2, 1]
 )
