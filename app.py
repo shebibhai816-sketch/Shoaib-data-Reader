@@ -177,7 +177,24 @@ trade_time = st.selectbox(
     ["15 Seconds", "30 Seconds", "1 Minute", "2 Minutes", "5 Minutes"],
     index=2
 )
+# ============================================================
+# ANALYSIS REQUEST
+# ============================================================
 
+if st.button(
+    "🔎 ANALYZE SELECTED SETUP",
+    use_container_width=True
+):
+
+    st.session_state.analysis_request = {
+        "pair": pair,
+        "candle_time": candle_time,
+        "trade_time": trade_time,
+        "requested_at": datetime.now(timezone.utc)
+    }
+
+    st.session_state.last_refresh = None
+    st.rerun()
     analysis_interval = st.select_slider(
         "Analysis Interval",
         options=[5, 10, 15, 30, 60],
