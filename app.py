@@ -282,6 +282,27 @@ if st.session_state.get("analysis_completed", False):
         "🧠 Analysis completed. "
         "Validated prediction engine will be connected here."
     ) 
+    # ============================================================
+# PREDICTION ENGINE INPUT
+# ============================================================
+
+if st.session_state.get("analysis_completed", False):
+
+    prediction_input = {
+        "pair": pair,
+        "candle_time": candle_time,
+        "trade_time": trade_time,
+        "price": float(price) if pd.notna(price) else None,
+        "trend": trend,
+        "ema20": float(ema20) if pd.notna(ema20) else None,
+        "ema50": float(ema50) if pd.notna(ema50) else None,
+        "atr14": float(atr14) if pd.notna(atr14) else None,
+        "support": float(support) if pd.notna(support) else None,
+        "resistance": float(resistance) if pd.notna(resistance) else None,
+        "h20_signal": signal
+    }
+
+    st.caption("🧠 Prediction engine input prepared.")
 
     st.divider()
 
