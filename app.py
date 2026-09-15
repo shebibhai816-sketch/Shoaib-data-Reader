@@ -156,6 +156,27 @@ st.markdown(
 with st.sidebar:
 
     st.header("⚙️ Reader Controls")
+    # ============================================================
+# PROFESSIONAL ANALYSIS SETTINGS
+# ============================================================
+
+pair = st.selectbox(
+    "💱 Currency Pair",
+    ["EURUSD"],
+    index=0
+)
+
+candle_time = st.selectbox(
+    "🕯️ Candle Time",
+    ["5 Seconds", "15 Seconds", "30 Seconds", "1 Minute", "2 Minutes", "5 Minutes"],
+    index=5
+)
+
+trade_time = st.selectbox(
+    "⏱️ Trade / Expiry Time",
+    ["15 Seconds", "30 Seconds", "1 Minute", "2 Minutes", "5 Minutes"],
+    index=2
+)
 
     analysis_interval = st.select_slider(
         "Analysis Interval",
