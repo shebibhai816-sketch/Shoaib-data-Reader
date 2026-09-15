@@ -908,6 +908,30 @@ if not df.empty:
             )
         )
 
+    # ============================================================
+# PROFESSIONAL H20 SIGNAL MARKER
+# ============================================================
+
+if signal == "SELL" and latest is not None:
+
+    fig.add_trace(
+        go.Scatter(
+            x=[candle_time],
+            y=[float(latest["high"]) + (
+                float(atr14) * 0.25
+                if pd.notna(atr14)
+                else 0
+            )],
+            mode="markers+text",
+            marker=dict(
+                symbol="triangle-down",
+                size=16
+            ),
+            text=["SELL"],
+            textposition="top center",
+            name="CURRENT H20 SIGNAL"
+        )
+    )
     fig.update_layout(
         height=620,
         xaxis_title="UTC Time",
