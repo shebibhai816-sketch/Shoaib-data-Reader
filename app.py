@@ -932,6 +932,24 @@ if signal == "SELL" and latest is not None:
             name="CURRENT H20 SIGNAL"
         )
     )
+    # ============================================================
+# ANALYSIS STATUS
+# ============================================================
+
+if signal == "SELL":
+    st.success(
+        "🟢 ANALYSIS COMPLETE — H20 DOWN / SELL CONDITION CONFIRMED"
+    )
+else:
+    st.info(
+        "⚪ ANALYSIS COMPLETE — NO CONFIRMED SIGNAL"
+    )
+
+st.caption(
+    f"Session: {'ACTIVE' if ny_core else 'INACTIVE'} • "
+    f"Trend: {trend} • "
+    f"UTC Hour: {utc_hour if utc_hour is not None else '—'}"
+)
     fig.update_layout(
         height=620,
         xaxis_title="UTC Time",
