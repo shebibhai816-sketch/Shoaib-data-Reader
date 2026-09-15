@@ -649,7 +649,34 @@ with m5:
 # ============================================================
 
 st.markdown("### 🎯 Current H20 Signal")
+# PROFESSIONAL ANALYSIS RESULT
+analysis_direction = "DOWN" if (
+    latest["EMA_DIRECTION"] == "BEAR" and
+    13 <= int(latest["Hour_UTC"]) < 17
+) else "NO CLEAR DIRECTION"
 
+analysis_signal = "SELL" if analysis_direction == "DOWN" else "NO SIGNAL"
+
+st.markdown("### 🧠 Professional Analysis")
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    st.metric("Direction", analysis_direction)
+
+with c2:
+    st.metric("Signal", analysis_signal)
+
+with c3:
+    st.metric(
+        "Trend",
+        str(latest["EMA_DIRECTION"])
+    )
+
+if analysis_signal == "SELL":
+    st.success("✅ H20 validated condition is active.")
+else:
+    st.info("⏸️ No confirmed H20 signal at this moment.")
 signal_col, reason_col, session_col = st.columns(
     [1, 2, 1]
 )
