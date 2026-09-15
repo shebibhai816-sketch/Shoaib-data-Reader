@@ -649,52 +649,79 @@ with m5:
 # ============================================================
 
 st.markdown("### 🎯 Current H20 Signal")
-# PROFESSIONAL ANALYSIS RESULT
-analysis_direction = "DOWN" if (
-    latest["EMA_DIRECTION"] == "BEAR" and
-    13 <= pd.to_datetime(latest["Datetime"], utc=True).hour < 17
-) else "NO CLEAR DIRECTION"
+# ============================================================
+# PROFESSIONAL ANALYSIS + CHART SIGNAL MODULE
+# ============================================================
 
-analysis_signal = "SELL" if analysis_direction == "DOWN" else "NO SIGNAL"
+latest_time = pd.to_datetime(latest["Datetime"], utc=True)
+latest_hour = latest_time.hour
+
+trend = str(latest["EMA_DIRECTION"])
+price = float(latest["Close"])
+
+h20_active = (
+    trend == "BEAR"
+    and 13 <= latest_hour < 17
+)
+
+if h20_active:
+    analysis_direction = "DOWN"
+    analysis_signal = "SELL"
+    analysis_status = "VALIDATED"
+    analysis_reason = "Locked H20 bearish NY-core condition is satisfied."
+else:
+    analysis_direction = "NO CLEAR DIRECTION"
+    analysis_signal = "NO SIGNAL"
+    analysis_status = "NONE"
+
+    if not (13 <= latest_hour < 17):
+        analysis_reason = "Outside locked H20 NY-core session."
+    elif trend != "BEAR":
+        analysis_reason = "EMA trend is not bearish."
+    else:
+        analysis_reason = "Locked H20 conditions are not satisfied."
+
+
+# ---------- PROFESSIONAL ANALYSIS PANEL ----------
 
 st.markdown("### 🧠 Professional Analysis")
 
-c1, c2, c3 = st.columns(3)
+a1, a2, a3 = st.columns(3)
 
-with c1:
+with a1:
     st.metric("Direction", analysis_direction)
 
-with c2:
+with a2:
     st.metric("Signal", analysis_signal)
 
-with c3:
-    st.metric(
-        "Trend",
-        str(latest["EMA_DIRECTION"])
-    )
+with a3:
+    st.metric("Status", analysis_status)
 
 if analysis_signal == "SELL":
-    st.success("✅ H20 validated condition is active.")
+    st.success("🔻 CONFIRMED H20 SELL CONDITION")
 else:
     st.info("⏸️ No confirmed H20 signal at this moment.")
-    # PROFESSIONAL CHART MARKER
+
+st.caption(f"Reason: {analysis_reason}")
+
+
+# ---------- CHART MARKER ----------
 
 if analysis_signal == "SELL":
-    st.info("🔻 H20 SELL marker: current completed candle")
-else:
-    st.caption("No confirmed chart signal at this moment.")
-    # PROFESSIONAL H20 CHART MARKER
-
-if analysis_signal == "SELL":
-    fig.add_trace(go.Scatter(
-        x=[latest["Datetime"]],
-        y=[latest["High"]],
-        mode="markers+text",
-        marker=dict(size=14, symbol="triangle-down"),
-        text=["SELL"],
-        textposition="top center",
-        name="H20 SELL"
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=[latest_time],
+            y=[float(latest["High"])],
+            mode="markers+text",
+            marker=dict(
+                size=15,
+                symbol="triangle-down"
+            ),
+            text=["SELL"],
+            textposition="top center",
+            name="H20 SELL"
+        )
+    )
 signal_col, reason_col, session_col = st.columns(
     [1, 2, 1]
 )
