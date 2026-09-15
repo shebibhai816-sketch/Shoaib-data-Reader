@@ -259,6 +259,29 @@ if "analysis_request" in st.session_state:
     ):
         st.session_state.last_refresh = None
         st.rerun()
+       # ============================================================
+# PREDICTION RESULT PANEL
+# ============================================================
+
+if st.session_state.get("analysis_completed", False):
+
+    st.markdown("### 🎯 Analysis Result")
+
+    p1, p2, p3 = st.columns(3)
+
+    with p1:
+        st.metric("Prediction", "PENDING")
+
+    with p2:
+        st.metric("Direction", "WAIT")
+
+    with p3:
+        st.metric("Confidence", "—")
+
+    st.info(
+        "🧠 Analysis completed. "
+        "Validated prediction engine will be connected here."
+    ) 
 
     st.divider()
 
