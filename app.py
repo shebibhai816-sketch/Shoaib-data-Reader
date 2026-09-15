@@ -195,6 +195,20 @@ if st.button(
 
     st.session_state.last_refresh = None
     st.rerun()
+    # ============================================================
+# ANALYSIS REQUEST STATUS
+# ============================================================
+
+if "analysis_request" in st.session_state:
+
+    req = st.session_state.analysis_request
+
+    st.info(
+        f"🔎 Analysis Ready — "
+        f"{req['pair']} • "
+        f"{req['candle_time']} • "
+        f"{req['trade_time']}"
+    )
     analysis_interval = st.select_slider(
         "Analysis Interval",
         options=[5, 10, 15, 30, 60],
