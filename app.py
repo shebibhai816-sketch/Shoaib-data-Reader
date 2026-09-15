@@ -698,7 +698,6 @@ else:
     st.info("⏸️ No confirmed H20 signal at this moment.")
 
 st.caption(f"Reason: {analysis_reason}")
-    )
 signal_col, reason_col, session_col = st.columns(
     [1, 2, 1]
 )
