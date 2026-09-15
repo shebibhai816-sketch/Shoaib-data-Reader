@@ -326,6 +326,38 @@ if st.session_state.get("analysis_completed", False):
         "reason": prediction_reason,
         "validated": False
     }
+    # ============================================================
+# PREDICTION DATA STATUS
+# ============================================================
+
+PREDICTION_DATA_FILE = "prediction_data.csv"
+
+prediction_data_available = False
+
+try:
+    prediction_data = pd.read_csv(
+        PREDICTION_DATA_FILE
+    )
+
+    prediction_data_available = (
+        not prediction_data.empty
+    )
+
+except Exception:
+    prediction_data = pd.DataFrame()
+
+if prediction_data_available:
+
+    st.success(
+        f"🧠 Prediction data loaded — "
+        f"{len(prediction_data):,} records"
+    )
+
+else:
+
+    st.warning(
+        "🧠 Prediction dataset is not connected yet."
+    )
 
     st.divider()
 
