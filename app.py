@@ -303,6 +303,29 @@ if st.session_state.get("analysis_completed", False):
     }
 
     st.caption("🧠 Prediction engine input prepared.")
+    # ============================================================
+# VALIDATED PREDICTION ENGINE
+# ============================================================
+
+prediction_direction = "PENDING"
+prediction_reason = "Historical validation engine not connected yet."
+
+if st.session_state.get("analysis_completed", False):
+
+    # Prediction layer is intentionally separate
+    # from the locked H20 strategy.
+
+    if signal == "SELL":
+        prediction_reason = (
+            "H20 condition is active. "
+            "Historical prediction layer is awaiting validation."
+        )
+
+    prediction_result = {
+        "direction": prediction_direction,
+        "reason": prediction_reason,
+        "validated": False
+    }
 
     st.divider()
 
