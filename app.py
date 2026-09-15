@@ -971,6 +971,31 @@ st.caption(
         )
     )
 
+# ============================================================
+# CHART ANALYSIS RESULT
+# ============================================================
+
+st.markdown("### 🔎 Chart Analysis Result")
+
+if signal == "SELL":
+    result_title = "🔻 DOWN — H20 SELL"
+    result_text = "Locked H20 condition is confirmed on the latest completed candle."
+else:
+    result_title = "⚪ NO CONFIRMED SIGNAL"
+    result_text = reason
+
+st.markdown(
+    f"""
+    <div class="signal-box">
+        <div class="signal-title">CURRENT ANALYSIS</div>
+        <div class="signal-value">{result_title}</div>
+        <div style="margin-top:8px;font-size:0.95rem;">
+            {result_text}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
     st.plotly_chart(
         fig,
         use_container_width=True,
