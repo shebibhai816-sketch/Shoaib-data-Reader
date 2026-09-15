@@ -778,7 +778,16 @@ st.caption(
 # ============================================================
 # CHART
 # ============================================================
+# ============================================================
+# ANALYZE ACTION
+# ============================================================
 
+if st.button(
+    "🧠 ANALYZE CURRENT CHART",
+    use_container_width=True
+):
+    st.session_state.last_refresh = None
+    st.rerun()
 st.markdown("### 📈 Live Candlestick Chart")
 
 if not df.empty:
