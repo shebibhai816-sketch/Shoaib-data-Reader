@@ -709,6 +709,73 @@ with session_col:
     )
 
 # ============================================================
+# PROFESSIONAL ANALYSIS
+# ============================================================
+
+st.markdown("### 🧠 Professional Analysis")
+
+analysis_col1, analysis_col2, analysis_col3 = st.columns(3)
+
+if signal == "SELL":
+
+    analysis_direction = "DOWN"
+    analysis_status = "VALIDATED"
+    analysis_message = (
+        "Locked H20 bearish condition is currently satisfied."
+    )
+
+else:
+
+    analysis_direction = "NO CLEAR DIRECTION"
+    analysis_status = "NO SIGNAL"
+    analysis_message = reason
+
+with analysis_col1:
+    st.metric(
+        "Direction",
+        analysis_direction
+    )
+
+with analysis_col2:
+    st.metric(
+        "Analysis",
+        analysis_status
+    )
+
+with analysis_col3:
+    st.metric(
+        "Trend",
+        trend
+    )
+
+if signal == "SELL":
+
+    st.success(
+        "🔻 H20 ANALYSIS: DOWN / SELL CONDITION CONFIRMED"
+    )
+
+else:
+
+    st.info(
+        "⏸️ No confirmed H20 direction at this moment."
+    )
+
+st.caption(
+    f"Analysis: {analysis_message}"
+)
+
+st.caption(
+    f"Price: {price:.5f}  •  "
+    f"EMA20: {ema20:.5f}  •  "
+    f"EMA50: {ema50:.5f}  •  "
+    f"ATR14: {atr14:.5f}"
+    if pd.notna(price)
+    and pd.notna(ema20)
+    and pd.notna(ema50)
+    and pd.notna(atr14)
+    else "Indicator data unavailable."
+)
+# ============================================================
 # CHART
 # ============================================================
 
