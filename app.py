@@ -652,7 +652,7 @@ st.markdown("### 🎯 Current H20 Signal")
 # PROFESSIONAL ANALYSIS RESULT
 analysis_direction = "DOWN" if (
     latest["EMA_DIRECTION"] == "BEAR" and
-    13 <= int(latest["Hour_UTC"]) < 17
+    13 <= pd.to_datetime(latest["Datetime"], utc=True).hour < 17
 ) else "NO CLEAR DIRECTION"
 
 analysis_signal = "SELL" if analysis_direction == "DOWN" else "NO SIGNAL"
