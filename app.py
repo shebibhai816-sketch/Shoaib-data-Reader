@@ -209,6 +209,23 @@ if "analysis_request" in st.session_state:
         f"{req['candle_time']} • "
         f"{req['trade_time']}"
     )
+    # ============================================================
+# ANALYSIS PROCESSING
+# ============================================================
+
+if "analysis_request" in st.session_state:
+
+    if st.button(
+        "🧠 START ANALYSIS",
+        use_container_width=True
+    ):
+
+        with st.spinner("🔄 Analyzing selected market setup..."):
+            import time
+            time.sleep(4)
+
+        st.session_state.analysis_completed = True
+        st.rerun()
     analysis_interval = st.select_slider(
         "Analysis Interval",
         options=[5, 10, 15, 30, 60],
