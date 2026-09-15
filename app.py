@@ -649,55 +649,7 @@ with m5:
 # ============================================================
 
 st.markdown("### 🎯 Current H20 Signal")
-# ============================================================
-# PROFESSIONAL ANALYSIS MODULE
-# ============================================================
 
-latest_time = pd.to_datetime(latest["Etc/UTC"], utc=True)
-latest_hour = latest_time.hour
-
-trend = str(latest["EMA_DIRECTION"])
-price = float(latest["Close"])
-
-h20_active = (
-    trend == "BEAR"
-    and 13 <= latest_hour < 17
-)
-
-if h20_active:
-    analysis_direction = "DOWN"
-    analysis_signal = "SELL"
-    analysis_status = "VALIDATED"
-    analysis_reason = "Locked H20 bearish NY-core condition is satisfied."
-else:
-    analysis_direction = "NO CLEAR DIRECTION"
-    analysis_signal = "NO SIGNAL"
-    analysis_status = "NONE"
-
-    if not (13 <= latest_hour < 17):
-        analysis_reason = "Outside locked H20 NY-core session."
-    else:
-        analysis_reason = "EMA trend is not bearish."
-
-st.markdown("### 🧠 Professional Analysis")
-
-a1, a2, a3 = st.columns(3)
-
-with a1:
-    st.metric("Direction", analysis_direction)
-
-with a2:
-    st.metric("Signal", analysis_signal)
-
-with a3:
-    st.metric("Status", analysis_status)
-
-if analysis_signal == "SELL":
-    st.success("🔻 CONFIRMED H20 SELL CONDITION")
-else:
-    st.info("⏸️ No confirmed H20 signal at this moment.")
-
-st.caption(f"Reason: {analysis_reason}")
 signal_col, reason_col, session_col = st.columns(
     [1, 2, 1]
 )
