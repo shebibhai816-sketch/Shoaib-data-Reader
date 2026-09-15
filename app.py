@@ -650,10 +650,10 @@ with m5:
 
 st.markdown("### 🎯 Current H20 Signal")
 # ============================================================
-# PROFESSIONAL ANALYSIS + CHART SIGNAL MODULE
+# PROFESSIONAL ANALYSIS MODULE
 # ============================================================
 
-latest_time = pd.to_datetime(latest["Datetime"], utc=True)
+latest_time = pd.to_datetime(latest["Etc/UTC"], utc=True)
 latest_hour = latest_time.hour
 
 trend = str(latest["EMA_DIRECTION"])
@@ -676,13 +676,8 @@ else:
 
     if not (13 <= latest_hour < 17):
         analysis_reason = "Outside locked H20 NY-core session."
-    elif trend != "BEAR":
-        analysis_reason = "EMA trend is not bearish."
     else:
-        analysis_reason = "Locked H20 conditions are not satisfied."
-
-
-# ---------- PROFESSIONAL ANALYSIS PANEL ----------
+        analysis_reason = "EMA trend is not bearish."
 
 st.markdown("### 🧠 Professional Analysis")
 
@@ -703,23 +698,6 @@ else:
     st.info("⏸️ No confirmed H20 signal at this moment.")
 
 st.caption(f"Reason: {analysis_reason}")
-
-
-# ---------- CHART MARKER ----------
-
-if analysis_signal == "SELL":
-    fig.add_trace(
-        go.Scatter(
-            x=[latest_time],
-            y=[float(latest["High"])],
-            mode="markers+text",
-            marker=dict(
-                size=15,
-                symbol="triangle-down"
-            ),
-            text=["SELL"],
-            textposition="top center",
-            name="H20 SELL"
         )
     )
 signal_col, reason_col, session_col = st.columns(
