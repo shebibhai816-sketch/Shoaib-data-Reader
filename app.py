@@ -537,6 +537,28 @@ st.markdown("### 🌐 Reader Status")
 r1, r2, r3 = st.columns(3)
 r1.write(f"**Market:** {market_status}")
 r2.write(f"**Analysis Interval:** {st.session_state.analysis_interval}s")
-last_refresh_text = (
-    st.session_state.last_refresh.strftime('%Y-%m-%d %H:%M:%S UTC')
-    if st.session_state.last_
+last_refresh_text = st.session_state.last_refresh.strftime('%Y-%m-%d %H:%M:%S UTC') if st.session_state.last_refresh is
+not None else '—'
+r3.write(f"**Last Refresh:** {last_refresh_text}")
+
+if data_error:
+    st.error(f"Reader error: {data_error}")
+
+st.divider()
+st.markdown(
+    """
+    <div class="small-text">
+    Live source: Biquote OHLC feed. The live feed is not claimed to be identical to the historical BID dataset.
+    EUR/USD 5-minute H20 is the only currently locked validated strategy in this application.
+    Other pairs/timeframes are interface/research selections until their own historical and unseen validation is completed.
+    Short 10s/15s/30s candles require tick-stream aggregation before they can become live validated setups.
+    No automatic order execution is enabled.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ------------------------- AUTO REFRESH -------------------------
+if st.session_state.running:
+    time.sleep(max(5, int(st.session_state.analysis_interval)))
+    st.rerun()
