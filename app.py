@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from signalrcore.hub_connection_builder import HubConnectionBuilder
 
 # ============================================================
 # SHOAIB DATA READER — FINAL BASE / EXPANDABLE ARCHITECTURE
