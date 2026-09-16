@@ -303,60 +303,194 @@ if st.session_state.get("analysis_completed", False):
     }
 
     st.caption("🧠 Prediction engine input prepared.")
-    # ============================================================
-# VALIDATED PREDICTION ENGINE
+# ============================================================
+# VALIDATED H20 PREDICTION ENGINE
+# STAGE 8 + STAGE 9 LOCKED RESEARCH
 # ============================================================
 
-prediction_direction = "PENDING"
-prediction_reason = "Historical validation engine not connected yet."
+# Locked unseen-validation evidence
+H20_FWD6_WIN_RATE = 60.00
+H20_FWD6_AVG_ATR = 0.556601
+
+H20_FWD20_WIN_RATE = 68.57
+H20_FWD20_AVG_ATR = 1.377593
+
+H20_VALIDATED_SIGNALS = 245
+
+prediction_direction = "WAIT"
+prediction_reason = "No validated H20 signal is active."
+prediction_historical_rate = None
+prediction_historical_atr = None
+prediction_validated = False
+prediction_horizon = "Unsupported"
 
 if st.session_state.get("analysis_completed", False):
 
-    # Prediction layer is intentionally separate
-    # from the locked H20 strategy.
+    # --------------------------------------------------------
+    # H20 IS THE ONLY CURRENT LOCKED LIVE CANDIDATE
+    # --------------------------------------------------------
 
-    if signal == "SELL":
+    if pair == "EURUSD" and signal == "SELL":
+
+        # Current live H20 condition is confirmed
+        prediction_direction = "SELL"
+
         prediction_reason = (
-            "H20 condition is active. "
-            "Historical prediction layer is awaiting validation."
+            "Locked H20 bearish New York condition is active "
+            "on the latest completed 5-minute candle."
         )
 
-    prediction_result = {
-        "direction": prediction_direction,
-        "reason": prediction_reason,
-        "validated": False
-    }
-    # ============================================================
-# PREDICTION DATA STATUS
+        prediction_validated = True
+
+        # ----------------------------------------------------
+        # IMPORTANT:
+        # Stage 9 validation is based on 5-minute candles.
+        # FWD6 = 30 minutes.
+        # FWD20 = 100 minutes.
+        # ----------------------------------------------------
+
+        if trade_time == "30 Minutes":
+
+            prediction_historical_rate = H20_FWD6_WIN_RATE
+            prediction_historical_atr = H20_FWD6_AVG_ATR
+            prediction_horizon = "30-minute historical validation"
+
+        elif trade_time == "100 Minutes":
+
+            prediction_historical_rate = H20_FWD20_WIN_RATE
+            prediction_historical_atr = H20_FWD20_AVG_ATR
+            prediction_horizon = "100-minute historical validation"
+
+        else:
+
+            prediction_validated = False
+            prediction_horizon = "Not directly validated"
+
+            prediction_reason = (
+                "H20 signal is active, but the selected expiry "
+                "does not have a directly matching validated "
+                "historical horizon in the current research dataset."
+            )
+
+    else:
+
+        prediction_direction = "WAIT"
+        prediction_validated = False
+
+        prediction_reason = (
+            "No locked H20 SELL condition is currently active."
+        )
+
+
+# ------------------------------------------------------------
+# VALIDATED PREDICTION RESULT
+# ------------------------------------------------------------
+
+prediction_result = {
+    "direction": prediction_direction,
+    "reason": prediction_reason,
+    "historical_rate": prediction_historical_rate,
+    "historical_atr": prediction_historical_atr,
+    "horizon": prediction_horizon,
+    "validated": prediction_validated,
+    "historical_signals": H20_VALIDATED_SIGNALS
+}
+
+
+# ============================================================
+# PREDICTION RESULT DISPLAY
 # ============================================================
 
-PREDICTION_DATA_FILE = "prediction_data.csv"
+if st.session_state.get("analysis_completed", False):
 
-prediction_data_available = False
+    st.markdown("### 🎯 Validated Prediction")
 
-try:
-    prediction_data = pd.read_csv(
-        PREDICTION_DATA_FILE
-    )
+    r1, r2, r3 = st.columns(3)
 
-    prediction_data_available = (
-        not prediction_data.empty
-    )
+    with r1:
+        st.metric(
+            "Prediction",
+            prediction_direction
+        )
 
-except Exception:
-    prediction_data = pd.DataFrame()
+    with r2:
 
-if prediction_data_available:
+        if prediction_historical_rate is not None:
+            st.metric(
+                "Historical Rate",
+                f"{prediction_historical_rate:.2f}%"
+            )
+        else:
+            st.metric(
+                "Historical Rate",
+                "N/A"
+            )
 
-    st.success(
-        f"🧠 Prediction data loaded — "
-        f"{len(prediction_data):,} records"
-    )
+    with r3:
 
-else:
+        if prediction_validated:
+            st.metric(
+                "Status",
+                "VALIDATED"
+            )
+        else:
+            st.metric(
+                "Status",
+                "WAIT"
+            )
 
-    st.warning(
-        "🧠 Prediction dataset is not connected yet."
+    # --------------------------------------------------------
+    # RESULT MESSAGE
+    # --------------------------------------------------------
+
+    if prediction_direction == "SELL" and prediction_validated:
+
+        st.success(
+            "🔻 VALIDATED H20 SELL PREDICTION"
+        )
+
+        st.caption(
+            f"Historical validation: "
+            f"{prediction_historical_rate:.2f}% "
+            f"over {prediction_horizon}."
+        )
+
+        st.caption(
+            f"Historical sample: "
+            f"{H20_VALIDATED_SIGNALS:,} locked H20 signals."
+        )
+
+        if prediction_historical_atr is not None:
+            st.caption(
+                f"Average directional move: "
+                f"{prediction_historical_atr:.6f} ATR."
+            )
+
+    elif prediction_direction == "SELL" and not prediction_validated:
+
+        st.warning(
+            "⚠️ H20 SELL condition is active, but the "
+            "selected expiry is not directly validated."
+        )
+
+        st.caption(
+            prediction_reason
+        )
+
+    else:
+
+        st.info(
+            "⏸️ WAIT — No validated H20 prediction is active."
+        )
+
+        st.caption(
+            prediction_reason
+        )
+
+    st.caption(
+        "Research source: Stage 8 unseen validation + "
+        "Stage 9 locked OOS results. "
+        "No rule optimization performed."
     )
 
     st.divider()
