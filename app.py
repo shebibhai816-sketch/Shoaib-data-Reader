@@ -282,6 +282,11 @@ if st.session_state.get("analysis_completed", False):
         "🧠 Analysis completed. "
         "Validated prediction engine will be connected here."
     ) 
+    # Ensure current price is available
+if latest is not None:
+    price = float(latest["close"])
+else:
+    price = None
     # ============================================================
 # PREDICTION ENGINE INPUT
 # ============================================================
