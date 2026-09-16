@@ -1077,19 +1077,11 @@ st.caption(
     and pd.notna(atr14)
     else "Indicator data unavailable."
 )
+
 # ============================================================
 # CHART
 # ============================================================
-# ============================================================
-# ANALYZE ACTION
-# ============================================================
 
-if st.button(
-    "🧠 ANALYZE CURRENT CHART",
-    use_container_width=True
-):
-    st.session_state.last_refresh = None
-    st.rerun()
 st.markdown("### 📈 Live Candlestick Chart")
 
 if not df.empty:
@@ -1098,7 +1090,10 @@ if not df.empty:
 
     fig = go.Figure()
 
+    # --------------------------------------------------------
     # Candlesticks
+    # --------------------------------------------------------
+
     fig.add_trace(
         go.Candlestick(
             x=chart_df["Datetime"],
@@ -1110,33 +1105,38 @@ if not df.empty:
         )
     )
 
+    # --------------------------------------------------------
     # EMA20
+    # --------------------------------------------------------
+
     fig.add_trace(
         go.Scatter(
             x=chart_df["Datetime"],
             y=chart_df["EMA20"],
             mode="lines",
             name="EMA20",
-            line=dict(
-                width=1.5
-            )
+            line=dict(width=1.5)
         )
     )
 
+    # --------------------------------------------------------
     # EMA50
+    # --------------------------------------------------------
+
     fig.add_trace(
         go.Scatter(
             x=chart_df["Datetime"],
             y=chart_df["EMA50"],
             mode="lines",
             name="EMA50",
-            line=dict(
-                width=1.5
-            )
+            line=dict(width=1.5)
         )
     )
 
-    # Support
+    # --------------------------------------------------------
+    # Support 20
+    # --------------------------------------------------------
+
     fig.add_trace(
         go.Scatter(
             x=chart_df["Datetime"],
@@ -1150,7 +1150,10 @@ if not df.empty:
         )
     )
 
-    # Resistance
+    # --------------------------------------------------------
+    # Resistance 20
+    # --------------------------------------------------------
+
     fig.add_trace(
         go.Scatter(
             x=chart_df["Datetime"],
@@ -1164,7 +1167,10 @@ if not df.empty:
         )
     )
 
-    # Current price
+    # --------------------------------------------------------
+    # Current Price
+    # --------------------------------------------------------
+
     if pd.notna(price):
 
         fig.add_hline(
@@ -1174,21 +1180,21 @@ if not df.empty:
             annotation_position="top right"
         )
 
-    # H20 SELL markers
+    # --------------------------------------------------------
+    # Historical H20 SELL markers
+    # --------------------------------------------------------
+
     sell_df = chart_df[
         (
-            chart_df["EMA_DIRECTION"]
-            == "BEAR"
+            chart_df["EMA_DIRECTION"] == "BEAR"
         )
         &
         (
-            chart_df["Datetime"].dt.hour
-            >= H20_START_UTC
+            chart_df["Datetime"].dt.hour >= H20_START_UTC
         )
         &
         (
-            chart_df["Datetime"].dt.hour
-            < H20_END_UTC
+            chart_df["Datetime"].dt.hour < H20_END_UTC
         )
     ].copy()
 
@@ -1198,8 +1204,7 @@ if not df.empty:
             go.Scatter(
                 x=sell_df["Datetime"],
                 y=sell_df["high"] + (
-                    sell_df["ATR14"].fillna(0)
-                    * 0.25
+                    sell_df["ATR14"].fillna(0) * 0.25
                 ),
                 mode="markers",
                 name="H20 SELL",
@@ -1210,48 +1215,64 @@ if not df.empty:
             )
         )
 
-    # ============================================================
-# PROFESSIONAL H20 SIGNAL MARKER
-# ============================================================
+    # --------------------------------------------------------
+    # Current H20 Signal Marker
+    # --------------------------------------------------------
 
-if signal == "SELL" and latest is not None:
+    if signal == "SELL" and latest is not None:
 
-    fig.add_trace(
-        go.Scatter(
-            x=[candle_time],
-            y=[float(latest["high"]) + (
-                float(atr14) * 0.25
-                if pd.notna(atr14)
-                else 0
-            )],
-            mode="markers+text",
-            marker=dict(
-                symbol="triangle-down",
-                size=16
-            ),
-            text=["SELL"],
-            textposition="top center",
-            name="CURRENT H20 SIGNAL"
+        fig.add_trace(
+            go.Scatter(
+                x=[candle_time],
+                y=[
+                    float(latest["high"])
+                    +
+                    (
+                        float(atr14) * 0.25
+                        if pd.notna(atr14)
+                        else 0
+                    )
+                ],
+                mode="markers+text",
+                marker=dict(
+                    symbol="triangle-down",
+                    size=16
+                ),
+                text=["SELL"],
+                textposition="top center",
+                name="CURRENT H20 SIGNAL"
+            )
         )
-    )
-    # ============================================================
-# ANALYSIS STATUS
-# ============================================================
 
-if signal == "SELL":
-    st.success(
-        "🟢 ANALYSIS COMPLETE — H20 DOWN / SELL CONDITION CONFIRMED"
-    )
-else:
-    st.info(
-        "⚪ ANALYSIS COMPLETE — NO CONFIRMED SIGNAL"
+    # --------------------------------------------------------
+    # Chart Analysis Status
+    # --------------------------------------------------------
+
+    if signal == "SELL":
+
+        st.success(
+            "🟢 ANALYSIS COMPLETE — "
+            "H20 DOWN / SELL CONDITION CONFIRMED"
+        )
+
+    else:
+
+        st.info(
+            "⚪ ANALYSIS COMPLETE — "
+            "NO CONFIRMED SIGNAL"
+        )
+
+    st.caption(
+        f"Session: {'ACTIVE' if ny_core else 'INACTIVE'} • "
+        f"Trend: {trend} • "
+        f"UTC Hour: "
+        f"{utc_hour if utc_hour is not None else '—'}"
     )
 
-st.caption(
-    f"Session: {'ACTIVE' if ny_core else 'INACTIVE'} • "
-    f"Trend: {trend} • "
-    f"UTC Hour: {utc_hour if utc_hour is not None else '—'}"
-)
+    # --------------------------------------------------------
+    # Chart Layout
+    # --------------------------------------------------------
+
     fig.update_layout(
         height=620,
         xaxis_title="UTC Time",
@@ -1273,31 +1294,49 @@ st.caption(
         )
     )
 
-# ============================================================
-# CHART ANALYSIS RESULT
-# ============================================================
+    # --------------------------------------------------------
+    # Chart Analysis Result
+    # --------------------------------------------------------
 
-st.markdown("### 🔎 Chart Analysis Result")
+    st.markdown("### 🔎 Chart Analysis Result")
 
-if signal == "SELL":
-    result_title = "🔻 DOWN — H20 SELL"
-    result_text = "Locked H20 condition is confirmed on the latest completed candle."
-else:
-    result_title = "⚪ NO CONFIRMED SIGNAL"
-    result_text = reason
+    if signal == "SELL":
 
-st.markdown(
-    f"""
-    <div class="signal-box">
-        <div class="signal-title">CURRENT ANALYSIS</div>
-        <div class="signal-value">{result_title}</div>
-        <div style="margin-top:8px;font-size:0.95rem;">
-            {result_text}
+        result_title = "🔻 DOWN — H20 SELL"
+
+        result_text = (
+            "Locked H20 condition is confirmed "
+            "on the latest completed candle."
+        )
+
+    else:
+
+        result_title = "⚪ NO CONFIRMED SIGNAL"
+        result_text = reason
+
+    st.markdown(
+        f"""
+        <div class="signal-box">
+            <div class="signal-title">
+                CURRENT ANALYSIS
+            </div>
+
+            <div class="signal-value">
+                {result_title}
+            </div>
+
+            <div style="margin-top:8px;font-size:0.95rem;">
+                {result_text}
+            </div>
         </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+        """,
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # Display Chart
+    # --------------------------------------------------------
+
     st.plotly_chart(
         fig,
         use_container_width=True,
@@ -1316,9 +1355,6 @@ else:
 # ============================================================
 # MARKET DETAILS
 # ============================================================
-
-st.markdown("### 📋 Market Details")
-
 d1, d2, d3, d4 = st.columns(4)
 
 with d1:
@@ -1346,7 +1382,6 @@ with d3:
         if latest is not None
         else "—"
     )
-
 with d4:
     st.metric(
         "Candle Age",
