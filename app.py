@@ -537,8 +537,7 @@ st.markdown("### 🌐 Reader Status")
 r1, r2, r3 = st.columns(3)
 r1.write(f"**Market:** {market_status}")
 r2.write(f"**Analysis Interval:** {st.session_state.analysis_interval}s")
-last_refresh_text = st.session_state.last_refresh.strftime('%Y-%m-%d %H:%M:%S UTC') if st.session_state.last_refresh is
-not None else '—'
+last_refresh_text = st.session_state.last_refresh.strftime('%Y-%m-%d %H:%M:%S UTC') if st.session_state.last_refresh is not None else '—'
 r3.write(f"**Last Refresh:** {last_refresh_text}")
 
 if data_error:
