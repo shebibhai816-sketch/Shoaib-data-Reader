@@ -478,6 +478,35 @@ try:
 except Exception as exc:
     data_error = str(exc)
 
+# ------------------------- TICK LIVE DATA -------------------------
+def fetch_tick_live_data(symbol, candle_name, seconds=12):
+    interval = TICK_INTERVALS.get(candle_name)
+
+    if interval is None:
+        raise ValueError(
+            f"{candle_name} is not a tick-stream timeframe."
+        )
+
+    ticks = collect_tick_stream(symbol, seconds=seconds)
+
+    if not ticks:
+        raise ValueError(
+            "No live ticks received from Biquote SignalR."
+        )
+
+    candles = build_tick_candles(
+        ticks,
+        interval=interval
+    )
+
+    if candles.empty:
+        raise ValueError(
+            "No completed tick candle available yet."
+        )
+
+    candles["Datetime"] = candles["timestamp"]
+
+    return candles
 # ------------------------- ANALYSIS -------------------------
 if st.session_state.analysis_requested and not st.session_state.analysis_completed:
     with st.spinner("🔄 Analyzing selected market setup..."):
