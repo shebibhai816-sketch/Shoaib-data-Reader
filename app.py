@@ -805,7 +805,7 @@ with c3:
     )
 
 with c4:
-    st.write("")
+    now_button = st.button("NOW")
     st.write("")
     analyze_button = st.button(
         "🔎 ANALYZE",
