@@ -63,6 +63,133 @@ API_INTERVALS = {
     "30 Minutes": "30m",
 }
 
+# ------------------------- TICK ENGINE -------------------------
+TICK_INTERVALS = {
+    "10 Seconds": "10s",
+    "15 Seconds": "15s",
+    "30 Seconds": "30s",
+}
+
+TICK_HUB_URL = "https://biquote.io/hubs/tick"
+
+
+def is_tick_timeframe(candle_name):
+    return candle_name in TICK_INTERVALS
+
+
+def build_tick_candles(ticks, interval="10s"):
+    if not ticks:
+        return pd.DataFrame()
+
+    tick_df = pd.DataFrame(ticks)
+
+    if "timestamp" not in tick_df.columns or "mid" not in tick_df.columns:
+        return pd.DataFrame()
+
+    tick_df["timestamp"] = pd.to_datetime(
+        tick_df["timestamp"], utc=True, errors="coerce"
+    )
+    tick_df["mid"] = pd.to_numeric(
+        tick_df["mid"], errors="coerce"
+    )
+
+    tick_df = (
+        tick_df.dropna(subset=["timestamp", "mid"])
+        .sort_values("timestamp")
+        .drop_duplicates("timestamp", keep="last")
+    )
+
+    if tick_df.empty:
+        return pd.DataFrame()
+
+    candles = (
+        tick_df.set_index("timestamp")["mid"]
+        .resample(interval)
+        .agg(
+            Open="first",
+            High="max",
+            Low="min",
+            Close="last",
+        )
+        .dropna()
+        .reset_index()
+    )
+
+    candles["Candle_Close"] = (
+        candles["timestamp"] + pd.Timedelta(interval)
+    )
+
+    now_utc = pd.Timestamp.now(tz="UTC")
+
+    candles = candles[
+        candles["Candle_Close"] <= now_utc
+    ].copy()
+
+    return candles.reset_index(drop=True)
+
+
+def collect_tick_stream(symbol, seconds=10):
+    ticks = []
+    hub = None
+
+    def on_tick(args):
+        try:
+            payload = args[0] if isinstance(args, list) else args
+
+            if not isinstance(payload, dict):
+                return
+
+            if payload.get("symbol") != symbol:
+                return
+
+            bid = payload.get("bid")
+            ask = payload.get("ask")
+
+            if bid is None or ask is None:
+                return
+
+            bid = float(bid)
+            ask = float(ask)
+
+            ticks.append(
+                {
+                    "symbol": symbol,
+                    "bid": bid,
+                    "ask": ask,
+                    "mid": (bid + ask) / 2.0,
+                    "timestamp": payload.get("timestamp"),
+                }
+            )
+        except Exception:
+            pass
+
+    try:
+        hub = (
+            HubConnectionBuilder()
+            .with_url(TICK_HUB_URL)
+            .build()
+        )
+
+        hub.on("ReceiveTick", on_tick)
+        hub.start()
+
+        time.sleep(1)
+
+        hub.send("Subscribe", [[symbol]])
+
+        time.sleep(seconds)
+
+    except Exception:
+        return []
+
+    finally:
+        try:
+            if hub is not None:
+                hub.stop()
+        except Exception:
+            pass
+
+    return ticks
 PAIR_LABELS = {
     "EURUSD": "EUR/USD",
     "GBPUSD": "GBP/USD",
