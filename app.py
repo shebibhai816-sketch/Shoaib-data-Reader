@@ -1112,13 +1112,13 @@ except Exception as exc:
 
 
 # ============================================================
-# ANALYSIS — CONTINUOUS AUTO LIVE MODE
+# ANALYSIS — CONTINUOUS AUTO MODE
 # ============================================================
 
-if st.session_state.running:
-
-    st.session_state.analysis_requested = True
-    st.session_state.analysis_completed = False
+if (
+    st.session_state.running
+    and st.session_state.analysis_requested
+):
 
     with st.spinner(
         "🔄 Live H20 analysis running..."
@@ -1127,11 +1127,22 @@ if st.session_state.running:
 
     st.session_state.analysis_completed = True
 
-    # Stop automatically only when the locked
-    # H20 SELL condition is actually present.
+    # Valid H20 SELL signal ملتے ہی auto-analysis روک دیں
     if signal == "SELL":
         st.session_state.running = False
 
+if st.session_state.running:
+
+    time.sleep(
+        max(
+            5,
+            int(
+                st.session_state.analysis_interval
+            ),
+        )
+    )
+
+    st.rerun()
 # ============================================================
 # TOP METRICS
 # ============================================================
