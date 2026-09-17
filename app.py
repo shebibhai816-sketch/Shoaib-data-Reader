@@ -773,16 +773,16 @@ def validated_status(
 
 
 # ============================================================
-# FINAL APP CONTROLS
+# FINAL TRADING TERMINAL CONTROLS
 # ============================================================
 
-st.markdown("### 🎯 Analysis Control")
+st.markdown("### 🎯 EUR/USD H20")
 
-c1, c2, c3, c4 = st.columns([1.2, 1.2, 1.2, 1])
+c1, c2, c3, c4 = st.columns([1.15, 1.15, 1.15, 1.5])
 
 with c1:
     pair = st.selectbox(
-        "Currency Pair",
+        "Pair",
         ["EURUSD"],
         format_func=lambda x: "EUR/USD",
         key="selected_pair",
@@ -790,30 +790,28 @@ with c1:
 
 with c2:
     candle_selection = st.selectbox(
-        "Candle Time",
-        ["1 Minute", "5 Minutes"],
-        index=1,
+        "Timeframe",
+        ["5 Minutes"],
+        index=0,
         key="selected_candle",
     )
 
 with c3:
     expiry_selection = st.selectbox(
-        "Trade / Expiry",
+        "Expiry",
         ["30 Minutes", "100 Minutes"],
         index=0,
         key="selected_expiry",
     )
 
 with c4:
-    now_button = st.button("NOW")
-    st.write("")
     analyze_button = st.button(
         "🔎 ANALYZE",
         use_container_width=True,
         type="primary",
     )
 
-if analyze_button or now_button:
+if analyze_button:
     st.session_state.running = True
     st.session_state.analysis_requested = True
     st.session_state.analysis_completed = False
@@ -826,9 +824,10 @@ if analyze_button or now_button:
     }
 
 st.caption(
-    "🔒 EUR/USD H20 locked • Auto Trading disabled"
+    "🔒 EUR/USD H20 LOCKED • "
+    "5M • Auto Analysis Active • "
+    "Auto Trading Disabled"
 )
-
 
 # ============================================================
 # LIVE DATA ENGINE
