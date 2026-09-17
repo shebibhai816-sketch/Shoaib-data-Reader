@@ -1124,7 +1124,7 @@ if (
         "🔄 Analyzing selected market setup..."
     ):
 
-        time.sleep(4)
+        time.sleep(5)
 
     st.session_state.analysis_completed = True
 
