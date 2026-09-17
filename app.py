@@ -1133,7 +1133,8 @@ if (
 
     st.session_state.analysis_completed = True
     if signal == "SELL":
-    st.session_state.running = False
+
+st.session_state.running = False
 
 # ============================================================
 # TOP METRICS
