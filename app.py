@@ -491,7 +491,7 @@ try:
             or 0 <= candle_age <= STALE_LIMIT_MINUTES
         )
 
-        price = float(latest.Close)
+        price = float(latest.close)
         ema20 = (
             float(latest.EMA20)
             if pd.notna(latest.EMA20)
