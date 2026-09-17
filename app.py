@@ -813,7 +813,8 @@ with c4:
         type="primary",
     )
 
-if analyze_button:
+if analyze_button or now_button:
+    st.session_state.running = True
     st.session_state.analysis_requested = True
     st.session_state.analysis_completed = False
 
@@ -1110,9 +1111,8 @@ except Exception as exc:
 
     data_error = str(exc)
 
-
 # ============================================================
-# ANALYSIS — CONTINUOUS AUTO MODE
+# ANALYSIS — CONTINUOUS 5-SECOND LIVE LOOP
 # ============================================================
 
 if (
@@ -1125,24 +1125,28 @@ if (
     ):
         time.sleep(5)
 
-    st.session_state.analysis_completed = True
-
-    # Valid H20 SELL signal ملتے ہی auto-analysis روک دیں
+    # SELL مل گیا تو loop ختم
     if signal == "SELL":
+
         st.session_state.running = False
+        st.session_state.analysis_completed = True
 
-if st.session_state.running:
+    # ابھی SELL نہیں ملا — loop جاری رکھیں
+    else:
 
-    time.sleep(
-        max(
-            5,
-            int(
-                st.session_state.analysis_interval
-            ),
+        st.session_state.analysis_completed = True
+
+        time.sleep(
+            max(
+                5,
+                int(
+                    st.session_state.analysis_interval
+                ),
+            )
         )
-    )
 
-    st.rerun()
+        st.rerun()
+
 # ============================================================
 # TOP METRICS
 # ============================================================
@@ -1821,21 +1825,3 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-
-# ============================================================
-# AUTO REFRESH
-# ============================================================
-
-if st.session_state.running:
-
-    time.sleep(
-        max(
-            5,
-            int(
-                st.session_state.analysis_interval
-            ),
-        )
-    )
-
-    st.rerun()
