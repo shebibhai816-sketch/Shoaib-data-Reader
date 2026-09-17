@@ -1570,7 +1570,7 @@ if not df.empty and latest is not None:
         )
 
     fig.update_layout(
-        height=620,
+        height=720,
         xaxis_title="UTC Time",
         yaxis_title="Price",
         xaxis_rangeslider_visible=False,
