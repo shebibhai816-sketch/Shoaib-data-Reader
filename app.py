@@ -1291,68 +1291,58 @@ if (
 
 
 # ============================================================
-# CURRENT SIGNAL
+# MAIN SIGNAL PANEL
 # ============================================================
 
+signal_display = signal
+
+if signal == "SELL":
+    signal_title = "SELL"
+    signal_message = "H20 SELL SIGNAL ACTIVE"
+elif st.session_state.running:
+    signal_title = "ANALYZING"
+    signal_message = "Waiting for H20 confirmation..."
+else:
+    signal_title = "WAITING"
+    signal_message = "Press ANALYZE to start"
+
+session_display = "H20 ACTIVE" if ny_core else "H20 WAITING"
+
 st.markdown(
-    "### 🎯 Current Signal"
+    f"""
+    <div class="signal-box" style="padding:24px; margin:10px 0 18px 0;">
+        <div class="signal-title">LIVE SIGNAL</div>
+        <div class="signal-value" style="font-size:2.4rem;">
+            {signal_title}
+        </div>
+        <div class="small-text" style="font-size:0.9rem; margin-top:6px;">
+            {signal_message}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-a, b, c = st.columns([1, 2, 1])
+s1, s2, s3, s4 = st.columns(4)
 
-with a:
+with s1:
+    st.metric("Trend", trend)
 
-    css = (
-        "#2ecc71"
+with s2:
+    st.metric("H20 Session", session_display)
+
+with s3:
+    st.metric("Expiry", expiry_selection)
+
+with s4:
+    validation_text = (
+        "VALIDATED"
         if signal == "SELL"
-        else "#e67e22"
+        and pair == "EURUSD"
+        and candle_selection == "5 Minutes"
+        else "RESEARCH"
     )
-
-    st.markdown(
-        f'''
-        <div class="signal-box">
-            <div class="signal-title">SIGNAL</div>
-            <div class="signal-value"
-                 style="color:{css}">
-                {signal}
-            </div>
-        </div>
-        ''',
-        unsafe_allow_html=True,
-    )
-
-
-with b:
-
-    st.markdown(
-        f'''
-        <div class="signal-box">
-            <div class="signal-title">REASON</div>
-            <div style="font-size:1rem;
-                        font-weight:650">
-                {reason}
-            </div>
-        </div>
-        ''',
-        unsafe_allow_html=True,
-    )
-
-
-with c:
-
-    st.markdown(
-        f'''
-        <div class="signal-box">
-            <div class="signal-title">NY CORE</div>
-            <div class="signal-value">
-                {"ACTIVE" if ny_core else "INACTIVE"}
-            </div>
-        </div>
-        ''',
-        unsafe_allow_html=True,
-    )
-
-
+    st.metric("Status", validation_text)
 # ============================================================
 # PROFESSIONAL ANALYSIS
 # ============================================================
