@@ -113,7 +113,7 @@ TICK_HUB_URL = "https://biquote.io/hubs/tick"
 # Keep enough tick history to progressively build
 # 60+ candles for the short-timeframe indicator engine.
 TICK_BUFFER_MINUTES = 45
-
+TICK_WARMUP_CANDLES = 60
 
 def is_tick_timeframe(candle_name):
     return candle_name in TICK_INTERVALS
