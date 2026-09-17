@@ -1112,8 +1112,13 @@ except Exception as exc:
 
 
 # ============================================================
-# ANALYSIS
+# ANALYSIS — AUTO LIVE MODE
 # ============================================================
+
+if st.session_state.running:
+
+    st.session_state.analysis_requested = True
+    st.session_state.analysis_completed = False
 
 if (
     st.session_state.analysis_requested
@@ -1127,7 +1132,6 @@ if (
         time.sleep(5)
 
     st.session_state.analysis_completed = True
-
 
 # ============================================================
 # TOP METRICS
