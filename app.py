@@ -1460,174 +1460,241 @@ if st.session_state.analysis_completed:
             "is active for this setup."
         )
 
-
 # ============================================================
-# LIVE CHART
+# MAIN TRADING TERMINAL VIEW
 # ============================================================
 
-st.markdown(
-    "### 📈 Live Candlestick Chart"
-)
+st.markdown("### 📈 EUR/USD • 5M LIVE MARKET")
 
 if not df.empty and latest is not None:
 
     chart_df = df.tail(100)
 
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Candlestick(
-            x=chart_df.Datetime,
-            open=chart_df.open,
-            high=chart_df.high,
-            low=chart_df.low,
-            close=chart_df.close,
-            name=PAIR_LABELS.get(
-                pair,
-                pair,
-            ),
-        )
+    left_col, right_col = st.columns(
+        [3.4, 1.0],
+        gap="medium",
     )
 
-    fig.add_trace(
-        go.Scatter(
-            x=chart_df.Datetime,
-            y=chart_df.EMA20,
-            name="EMA20",
-            mode="lines",
-        )
-    )
+    # ========================================================
+    # LEFT — LIVE CHART
+    # ========================================================
 
-    fig.add_trace(
-        go.Scatter(
-            x=chart_df.Datetime,
-            y=chart_df.EMA50,
-            name="EMA50",
-            mode="lines",
-        )
-    )
+    with left_col:
 
-    fig.add_trace(
-        go.Scatter(
-            x=chart_df.Datetime,
-            y=chart_df.Support20,
-            name="Support 20",
-            mode="lines",
-            line=dict(dash="dot"),
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=chart_df.Datetime,
-            y=chart_df.Resistance20,
-            name="Resistance 20",
-            mode="lines",
-            line=dict(dash="dot"),
-        )
-    )
-
-    if pd.notna(price):
-
-        fig.add_hline(
-            y=price,
-            line_dash="dash",
-            annotation_text=f"{price:.5f}",
-            annotation_position="top right",
-        )
-
-    if (
-        signal == "SELL"
-        and pd.notna(atr14)
-    ):
+        fig = go.Figure()
 
         fig.add_trace(
-            go.Scatter(
-                x=[candle_time],
-                y=[
-                    float(latest.high)
-                    + float(atr14) * 0.25
-                ],
-                mode="markers+text",
-                marker=dict(
-                    symbol="triangle-down",
-                    size=16,
+            go.Candlestick(
+                x=chart_df.Datetime,
+                open=chart_df.open,
+                high=chart_df.high,
+                low=chart_df.low,
+                close=chart_df.close,
+                name=PAIR_LABELS.get(
+                    pair,
+                    pair,
                 ),
-                text=["SELL"],
-                textposition="top center",
-                name="CURRENT H20 SELL",
             )
         )
 
-    fig.update_layout(
-        height=720,
-        xaxis_title="UTC Time",
-        yaxis_title="Price",
-        xaxis_rangeslider_visible=False,
-        hovermode="x unified",
-        margin=dict(
-            l=10,
-            r=10,
-            t=35,
-            b=10,
-        ),
-        legend=dict(
-            orientation="h",
-            y=1.01,
-            x=0,
-        ),
-    )
+        fig.add_trace(
+            go.Scatter(
+                x=chart_df.Datetime,
+                y=chart_df.EMA20,
+                name="EMA20",
+                mode="lines",
+            )
+        )
 
-    st.markdown(
-        "### 🔎 Chart Analysis Result"
-    )
+        fig.add_trace(
+            go.Scatter(
+                x=chart_df.Datetime,
+                y=chart_df.EMA50,
+                name="EMA50",
+                mode="lines",
+            )
+        )
 
-    chart_result = (
-        "🔻 DOWN — H20 SELL"
-        if signal == "SELL"
-        else "⚪ NO CONFIRMED SIGNAL"
-    )
+        fig.add_trace(
+            go.Scatter(
+                x=chart_df.Datetime,
+                y=chart_df.Support20,
+                name="Support 20",
+                mode="lines",
+                line=dict(dash="dot"),
+            )
+        )
 
-    st.markdown(
-        f'''
-        <div class="signal-box">
-            <div class="signal-title">
-                CURRENT ANALYSIS
+        fig.add_trace(
+            go.Scatter(
+                x=chart_df.Datetime,
+                y=chart_df.Resistance20,
+                name="Resistance 20",
+                mode="lines",
+                line=dict(dash="dot"),
+            )
+        )
+
+        if pd.notna(price):
+
+            fig.add_hline(
+                y=price,
+                line_dash="dash",
+                annotation_text=f"{price:.5f}",
+                annotation_position="top right",
+            )
+
+        if (
+            signal == "SELL"
+            and pd.notna(atr14)
+        ):
+
+            fig.add_trace(
+                go.Scatter(
+                    x=[candle_time],
+                    y=[
+                        float(latest.high)
+                        + float(atr14) * 0.25
+                    ],
+                    mode="markers+text",
+                    marker=dict(
+                        symbol="triangle-down",
+                        size=16,
+                    ),
+                    text=["SELL"],
+                    textposition="top center",
+                    name="CURRENT H20 SELL",
+                )
+            )
+
+        fig.update_layout(
+            height=720,
+            xaxis_title="UTC Time",
+            yaxis_title="Price",
+            xaxis_rangeslider_visible=False,
+            hovermode="x unified",
+            margin=dict(
+                l=10,
+                r=10,
+                t=35,
+                b=10,
+            ),
+            legend=dict(
+                orientation="h",
+                y=1.01,
+                x=0,
+            ),
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={
+                "displaylogo": False,
+                "responsive": True,
+            },
+        )
+
+    # ========================================================
+    # RIGHT — LIVE SIGNAL PANEL
+    # ========================================================
+
+    with right_col:
+
+        if signal == "SELL":
+
+            display_signal = "SELL"
+            display_message = "H20 SELL SIGNAL ACTIVE"
+
+        elif st.session_state.running:
+
+            display_signal = "ANALYZING"
+            display_message = "Waiting for H20 confirmation..."
+
+        else:
+
+            display_signal = "WAITING"
+            display_message = "Press ANALYZE to start"
+
+        st.markdown(
+            f"""
+            <div class="signal-box"
+                 style="padding:22px; margin:0 0 14px 0;">
+
+                <div class="signal-title">
+                    LIVE SIGNAL
+                </div>
+
+                <div class="signal-value"
+                     style="font-size:2.35rem;">
+
+                    {display_signal}
+
+                </div>
+
+                <div class="small-text"
+                     style="margin-top:8px;">
+
+                    {display_message}
+
+                </div>
+
             </div>
-            <div class="signal-value">
-                {chart_result}
-            </div>
-            <div style="margin-top:8px">
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.metric(
+            "Trend",
+            trend,
+        )
+
+        st.metric(
+            "H20 Session",
+            "ACTIVE"
+            if ny_core
+            else "WAITING",
+        )
+
+        st.metric(
+            "Expiry",
+            expiry_selection,
+        )
+
+        validation_text = (
+            "VALIDATED"
+            if (
+                signal == "SELL"
+                and pair == "EURUSD"
+                and candle_selection == "5 Minutes"
+            )
+            else "RESEARCH"
+        )
+
+        st.metric(
+            "Status",
+            validation_text,
+        )
+
+        st.markdown(
+            f"""
+            <div class="small-text"
+                 style="margin-top:12px;">
+
+                <b>Analysis:</b><br>
                 {reason}
+
             </div>
-        </div>
-        ''',
-        unsafe_allow_html=True,
-    )
-
-    st.caption(
-        f"Pair: "
-        f"{PAIR_LABELS.get(pair, pair)} • "
-        f"Candle: {candle_selection} • "
-        f"Session: "
-        f"{'ACTIVE' if ny_core else 'INACTIVE'} • "
-        f"Trend: {trend}"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-        config={
-            "displaylogo": False,
-            "responsive": True,
-        },
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
 else:
 
     st.warning(
         "Live chart data is currently unavailable."
     )
+
 
 
 # ============================================================
