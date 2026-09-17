@@ -766,112 +766,60 @@ def validated_status(
 
 
 # ============================================================
-# SIDEBAR
+# FINAL APP CONTROLS
 # ============================================================
 
-with st.sidebar:
+st.markdown("### 🎯 Analysis Control")
 
-    st.header("⚙️ Reader Controls")
+c1, c2, c3, c4 = st.columns([1.2, 1.2, 1.2, 1])
 
-    analysis_interval = st.select_slider(
-        "Analysis Interval",
-        options=[5, 10, 15, 30, 60],
-        value=st.session_state.analysis_interval,
-        format_func=lambda x: f"{x} seconds",
-    )
-
-    st.session_state.analysis_interval = (
-        analysis_interval
-    )
-
-    st.divider()
-
+with c1:
     pair = st.selectbox(
-        "💱 Currency Pair",
-        CURRENCY_PAIRS,
-        format_func=lambda x: PAIR_LABELS.get(x, x),
+        "Currency Pair",
+        ["EURUSD"],
+        format_func=lambda x: "EUR/USD",
         key="selected_pair",
     )
 
+with c2:
     candle_selection = st.selectbox(
-        "🕯️ Candle Time",
-        CANDLE_OPTIONS,
+        "Candle Time",
+        ["1 Minute", "5 Minutes"],
+        index=1,
         key="selected_candle",
     )
 
+with c3:
     expiry_selection = st.selectbox(
-        "⏱️ Trade / Expiry Time",
-        EXPIRY_OPTIONS,
-        index=5,
+        "Trade / Expiry",
+        ["30 Minutes", "100 Minutes"],
+        index=0,
         key="selected_expiry",
     )
 
-    st.divider()
-
+with c4:
+    st.write("")
+    st.write("")
     analyze_button = st.button(
-        "🔎 ANALYZE SELECTED SETUP",
+        "🔎 ANALYZE",
         use_container_width=True,
         type="primary",
     )
 
-    start_button = st.button(
-        "▶ Start",
-        use_container_width=True,
-    )
+if analyze_button:
+    st.session_state.analysis_requested = True
+    st.session_state.analysis_completed = False
 
-    stop_button = st.button(
-        "⏹ Stop",
-        use_container_width=True,
-    )
+    st.session_state.last_analysis_request = {
+        "pair": pair,
+        "candle": candle_selection,
+        "expiry": expiry_selection,
+        "at": datetime.now(timezone.utc),
+    }
 
-    now_button = st.button(
-        "🔍 Analyze Now",
-        use_container_width=True,
-    )
-
-    if analyze_button or now_button:
-        st.session_state.analysis_requested = True
-        st.session_state.analysis_completed = False
-
-        st.session_state.last_analysis_request = {
-            "pair": pair,
-            "candle": candle_selection,
-            "expiry": expiry_selection,
-            "at": datetime.now(timezone.utc),
-        }
-
-    if start_button:
-        st.session_state.running = True
-
-    if stop_button:
-        st.session_state.running = False
-
-    st.divider()
-
-    st.markdown("### 🔒 Strategy Safety")
-
-    st.write(
-        "Strategy: LOCKED"
-        if STRATEGY_LOCKED
-        else "Strategy: UNLOCKED"
-    )
-
-    st.write(
-        "Auto Trading: DISABLED"
-        if not AUTO_TRADING
-        else "Auto Trading: ENABLED"
-    )
-
-    st.write("OOS optimization: DISABLED")
-
-    st.divider()
-
-    st.markdown("### 📌 Locked EUR/USD H20")
-
-    st.write("Direction: BEARISH")
-    st.write("Session: 13:00–17:00 UTC")
-    st.write("Entry: Completed candle close")
-    st.write("Extra filter: None")
+st.caption(
+    "🔒 EUR/USD H20 locked • Auto Trading disabled"
+)
 
 
 # ============================================================
