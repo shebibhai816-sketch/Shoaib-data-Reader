@@ -444,6 +444,13 @@ st.markdown(
         font-size: .78rem;
         color: #8b949e;
     }
+    div.stButton > button[kind="primary"] {
+    height: 58px;
+    border-radius: 14px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: .3px;
+}
     </style>
     """,
     unsafe_allow_html=True,
