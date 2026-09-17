@@ -443,38 +443,167 @@ freshness_ok = False
 data_error = None
 
 try:
-    # The locked H20 engine remains tied to EUR/USD 5-minute data.
-    # Other selections can load supported live data, but are not labelled validated.
-    raw = fetch_live_data(pair, candle_selection)
-    df = add_indicators(raw)
-    completed_df, now_utc = completed_candles(df, candle_selection)
-    latest = completed_df.iloc[-1]
+    # Short timeframes use the validated SignalR tick engine.
+    if is_tick_timeframe(candle_selection):
 
-    minutes = candle_minutes(candle_selection)
-    close_time = latest.Datetime + pd.Timedelta(minutes=minutes)
-    candle_time = latest.Datetime
-    candle_age = (pd.Timestamp(now_utc) - close_time).total_seconds() / 60
+        raw = fetch_tick_live_data(
+            pair,
+            candle_selection,
+            seconds=12,
+        )
 
-    # H20 is intentionally evaluated only on its locked EUR/USD 5-minute setup.
-    if pair == LOCKED_PAIR and candle_selection == LOCKED_TIMEFRAME:
-        signal, reason, ny_core = locked_h20_signal(latest)
-    else:
+        df = add_indicators(raw)
+
+        if df.empty:
+            raise ValueError("No completed tick candles available")
+
+        completed_df = df.copy()
+        latest = completed_df.iloc[-1]
+
+        interval = TICK_INTERVALS[candle_selection]
+
+        candle_time = latest.Datetime
+        close_time = candle_time + pd.Timedelta(interval)
+
+        now_utc = pd.Timestamp.now(tz="UTC")
+
+        candle_age = (
+            now_utc - close_time
+        ).total_seconds() / 60
+
+        # Tick-stream short timeframes are live/research only.
         signal = "NO SIGNAL"
-        reason = "This pair/timeframe is available for research, but no locked validation rule is assigned."
+        reason = (
+            "Tick Engine active — this short timeframe has "
+            "no validated trading rule yet."
+        )
         ny_core = False
 
-    weekend = now_utc.weekday() >= 5
-    market_status = "CLOSED — WEEKEND" if weekend else "OPEN"
-    freshness_ok = weekend or (0 <= candle_age <= STALE_LIMIT_MINUTES)
+        weekend = now_utc.weekday() >= 5
+        market_status = (
+            "CLOSED — WEEKEND"
+            if weekend
+            else "OPEN"
+        )
 
-    price = float(latest.close)
-    ema20 = float(latest.EMA20)
-    ema50 = float(latest.EMA50)
-    atr14 = float(latest.ATR14) if pd.notna(latest.ATR14) else np.nan
-    support = float(latest.Support20) if pd.notna(latest.Support20) else np.nan
-    resistance = float(latest.Resistance20) if pd.notna(latest.Resistance20) else np.nan
-    trend = latest.EMA_DIRECTION
-    st.session_state.last_refresh = now_utc
+        freshness_ok = (
+            weekend
+            or 0 <= candle_age <= STALE_LIMIT_MINUTES
+        )
+
+        price = float(latest.Close)
+        ema20 = (
+            float(latest.EMA20)
+            if pd.notna(latest.EMA20)
+            else np.nan
+        )
+        ema50 = (
+            float(latest.EMA50)
+            if pd.notna(latest.EMA50)
+            else np.nan
+        )
+        atr14 = (
+            float(latest.ATR14)
+            if pd.notna(latest.ATR14)
+            else np.nan
+        )
+        support = (
+            float(latest.Support20)
+            if pd.notna(latest.Support20)
+            else np.nan
+        )
+        resistance = (
+            float(latest.Resistance20)
+            if pd.notna(latest.Resistance20)
+            else np.nan
+        )
+
+        trend = (
+            latest.EMA_DIRECTION
+            if pd.notna(latest.EMA_DIRECTION)
+            else "UNKNOWN"
+        )
+
+        st.session_state.last_refresh = now_utc
+
+    else:
+        # Existing OHLC engine remains unchanged for minute timeframes.
+        raw = fetch_live_data(pair, candle_selection)
+        df = add_indicators(raw)
+        completed_df, now_utc = completed_candles(
+            df,
+            candle_selection,
+        )
+        latest = completed_df.iloc[-1]
+
+        minutes = candle_minutes(candle_selection)
+
+        close_time = (
+            latest.Datetime
+            + pd.Timedelta(minutes=minutes)
+        )
+
+        candle_time = latest.Datetime
+
+        candle_age = (
+            pd.Timestamp(now_utc) - close_time
+        ).total_seconds() / 60
+
+        # H20 remains tied ONLY to EUR/USD 5-minute.
+        if (
+            pair == LOCKED_PAIR
+            and candle_selection == LOCKED_TIMEFRAME
+        ):
+            signal, reason, ny_core = locked_h20_signal(
+                latest
+            )
+        else:
+            signal = "NO SIGNAL"
+            reason = (
+                "This pair/timeframe is available for research, "
+                "but no locked validation rule is assigned."
+            )
+            ny_core = False
+
+        weekend = now_utc.weekday() >= 5
+
+        market_status = (
+            "CLOSED — WEEKEND"
+            if weekend
+            else "OPEN"
+        )
+
+        freshness_ok = (
+            weekend
+            or 0 <= candle_age <= STALE_LIMIT_MINUTES
+        )
+
+        price = float(latest.close)
+        ema20 = float(latest.EMA20)
+        ema50 = float(latest.EMA50)
+
+        atr14 = (
+            float(latest.ATR14)
+            if pd.notna(latest.ATR14)
+            else np.nan
+        )
+
+        support = (
+            float(latest.Support20)
+            if pd.notna(latest.Support20)
+            else np.nan
+        )
+
+        resistance = (
+            float(latest.Resistance20)
+            if pd.notna(latest.Resistance20)
+            else np.nan
+        )
+
+        trend = latest.EMA_DIRECTION
+
+        st.session_state.last_refresh = now_utc
+
 except Exception as exc:
     data_error = str(exc)
 
