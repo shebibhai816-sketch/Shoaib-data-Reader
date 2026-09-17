@@ -633,6 +633,15 @@ def fetch_tick_live_data(symbol, candle_name, seconds=12):
             "No completed tick candle available yet."
         )
 
+    candles = candles.rename(
+        columns={
+            "Open": "open",
+            "High": "high",
+            "Low": "low",
+            "Close": "close",
+        }
+    )
+
     candles["Datetime"] = candles["timestamp"]
 
     return candles
